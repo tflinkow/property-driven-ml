@@ -10,15 +10,16 @@ import onnx
 import torch
 import torch.optim as optim
 
-from examples.models import AlsomitraNet
-
 from property_driven_ml.constraints import (
     StandardRobustnessConstraint,
-    OppositeFacesConstraint,
+    StrongClassificationRobustnessConstraint,
+    ClassificationRobustnessConstraint,
+    ExactlyOnePerPairConstraint,
+    NotBothConstraint,
+    ClothingFootwearConstraint,
     AlsomitraProperty1Constraint,
     AlsomitraProperty2Constraint,
     AlsomitraProperty3Constraint,
-    AlsomitraProperty4Constraint,
 )
 from examples.datasets import create_dataset
 from property_driven_ml.utils.visualization import save_epoch_images
@@ -32,12 +33,10 @@ from property_driven_ml.training import EpochInfoTrain, train, test
 
 # torch.autograd.set_detect_anomaly(True)
 
-
 def main():
     """Main training script for property-driven machine learning."""
     logics_list: list[logics.Logic] = [
         logics.DL2(),
-        logics.LeakyLogic(),
         logics.GoedelFuzzyLogic(),
         logics.KleeneDienesFuzzyLogic(),
         logics.LukasiewiczFuzzyLogic(),
@@ -45,7 +44,20 @@ def main():
         logics.GoguenFuzzyLogic(),
         logics.ReichenbachSigmoidalFuzzyLogic(),
         logics.YagerFuzzyLogic(),
-        logics.STL(),
+        logics.STL(1),
+        logics.STL(2),
+        logics.STL(5),
+        logics.STL(10),
+        logics.STL(20),
+        logics.QLL(1),
+        logics.QLL(2),
+        logics.QLL(5),
+        logics.QLL(10),
+        logics.QLL(20),
+        logics.QLL(50),
+        logics.QLL(100),
+        logics.LeakyLogic(),
+        logics.RealProductLogic()
     ]
 
     parser = argparse.ArgumentParser()
@@ -58,21 +70,13 @@ def main():
         "--dataset",
         type=str,
         required=True,
-        choices=["mnist", "alsomitra", "dice", "gtsrb"],
+        choices=["mnist", "fashion", "alsomitra", "dice", "gtsrb"],
     )
-    parser.add_argument("--experiment-name", type=str, required=True)
     parser.add_argument(
         "--constraint",
         type=str,
         default="StandardRobustness",
-        choices=[
-            "StandardRobustness",
-            "OppositeFaces",
-            "AlsomitraProperty1",
-            "AlsomitraProperty2",
-            "AlsomitraProperty3",
-            "AlsomitraProperty4",
-        ],  # Will add more later
+        choices=["StandardRobustness", "StrongClassificationRobustness", "ClassificationRobustness", "NotBoth", "ClothingFootwear", "ExactlyOnePerPair", "AlsomitraProperty1", "AlsomitraProperty2", "AlsomitraProperty3", "AlsomitraProperty4"],  # Will add more later
         help="which constraint to use",
     )
     parser.add_argument(
@@ -129,17 +133,36 @@ def main():
         action="store_true",
         help="save one input image, random image, and adversarial image per epoch",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+    )
+    parser.add_argument(
+        "--epsilon",
+        type=float,
+        default=None
+    )
+    parser.add_argument(
+        "--delta",
+        type=float,
+        default=None
+    )
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        default=0.5
+    )
     args = parser.parse_args()
 
     kwargs = {"batch_size": args.batch_size}
 
-    torch.manual_seed(42)
-    np.random.seed(42)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
 
-        torch.cuda.manual_seed(42)
+        torch.cuda.manual_seed(args.seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
@@ -152,10 +175,10 @@ def main():
     else:
         device = torch.device("cpu")
 
-    pgd_logic = logics.LeakyLogic()
+    common_logic = logics.QLL()
 
     if args.logic is None:
-        logic = pgd_logic
+        logic = common_logic
         is_baseline = True
     else:
         logic = next(logic for logic in logics_list if logic.name == args.logic)
@@ -175,12 +198,15 @@ def main():
     # Define allowed constraint classes
     output_allowed = {
         "StandardRobustness": StandardRobustnessConstraint,
-        "OppositeFaces": OppositeFacesConstraint,
+        "StrongClassificationRobustness": StrongClassificationRobustnessConstraint,
+        "ClassificationRobustness": ClassificationRobustnessConstraint,
+        "ExactlyOnePerPair": ExactlyOnePerPairConstraint,
+        "NotBoth": NotBothConstraint,
+        "ClothingFootwear": ClothingFootwearConstraint,
         # "LipschitzRobustness": CreateLipschitzRobustnessConstraint,
         "AlsomitraProperty1": AlsomitraProperty1Constraint,
         "AlsomitraProperty2": AlsomitraProperty2Constraint,
         "AlsomitraProperty3": AlsomitraProperty3Constraint,
-        "AlsomitraProperty4": AlsomitraProperty4Constraint,
         # "Groups": CreateGroupConstraint,  # Keep local since it has dataset-specific logic
     }
 
@@ -191,88 +217,109 @@ def main():
     if constraint_class == StandardRobustnessConstraint:
         constraint: constraints.Constraint = StandardRobustnessConstraint(
             device=device,
-            epsilon=0.3,  # Default epsilon for standard robustness on MNIST
-            delta=0.1,  # Default delta for standard robustness on MNIST
+            epsilon=args.epsilon,
+            delta=args.delta,
             std=std,  # epsilon is specified in terms of [0, 1] for MNIST but mean / std normalisation changes their domain
         )
-    elif constraint_class == OppositeFacesConstraint:
-        constraint: constraints.Constraint = OppositeFacesConstraint(
+    elif constraint_class == StrongClassificationRobustnessConstraint:
+        constraint: constraints.Constraint = StrongClassificationRobustnessConstraint(
             device=device,
-            epsilon=16 / 255,  # TODO: how can this be changed from the command line?
+            epsilon=args.epsilon,
+            delta=args.delta,
+            std=std,  # epsilon is specified in terms of [0, 1] for MNIST but mean / std normalisation changes their domain
+        )
+    elif constraint_class == ClassificationRobustnessConstraint:
+        constraint: constraints.Constraint = ClassificationRobustnessConstraint(
+            device=device,
+            epsilon=args.epsilon,
+            std=std,  # epsilon is specified in terms of [0, 1] for MNIST but mean / std normalisation changes their domain
+        )
+    elif constraint_class == ExactlyOnePerPairConstraint:
+        constraint: constraints.Constraint = ExactlyOnePerPairConstraint(
+            device=device,
+            epsilon=args.epsilon,
             std=std,  # epsilon is specified in terms of [0, 255] for dice images but mean / std normalisation changes their domain
         )
+    elif constraint_class == NotBothConstraint:
+        constraint: constraints.Constraint = NotBothConstraint(
+            device=device,
+            epsilon=args.epsilon,
+            std=std,  # epsilon is specified in terms of [0, 255] for dice images but mean / std normalisation changes their domain
+        )
+    elif constraint_class == ClothingFootwearConstraint:
+        constraint: constraints.Constraint = ClothingFootwearConstraint(
+            device=device,
+            epsilon=args.epsilon,
+            std=std,  # epsilon is specified in terms of [0, 1] for MNIST but mean / std normalisation changes their domain
+        )
     elif constraint_class == AlsomitraProperty1Constraint:
-        constraint: constraints.Constraint = AlsomitraProperty1Constraint(device=device)
+        constraint: constraints.Constraint = AlsomitraProperty1Constraint(
+            device=device
+        )
     elif constraint_class == AlsomitraProperty2Constraint:
-        constraint: constraints.Constraint = AlsomitraProperty2Constraint(device=device)
+        constraint: constraints.Constraint = AlsomitraProperty2Constraint(
+            device=device
+        )
     elif constraint_class == AlsomitraProperty3Constraint:
-        constraint: constraints.Constraint = AlsomitraProperty3Constraint(device=device)
-    elif constraint_class == AlsomitraProperty4Constraint:
-        constraint: constraints.Constraint = AlsomitraProperty4Constraint(device=device)
+        constraint: constraints.Constraint = AlsomitraProperty3Constraint(
+            device=device
+        )
     else:
-        raise NotImplementedError(f"Unhandeled constraint type: {constraint_class}")
+        raise NotImplementedError(f"Unhandled constraint type: {constraint_class}")
 
-    ### Set up PGD, ADAM, GradNorm ###
-    if args.oracle == "pgd":
-        oracle_train = training.PGD(
-            logic,
-            device,
-            args.oracle_steps,
-            args.oracle_restarts,
-            args.pgd_step_size,
-            mean,
-            std,
-        )
-        oracle_test = training.PGD(
-            pgd_logic,
-            device,
-            args.oracle_steps,
-            args.oracle_restarts,
-            args.pgd_step_size,
-            mean,
-            std,
-        )
-    else:
-        oracle_train = training.APGD(
-            logic, device, args.oracle_steps, args.oracle_restarts, mean, std
-        )
-        oracle_test = training.APGD(
-            pgd_logic,
-            device,
-            args.oracle_steps,
-            args.oracle_restarts,
-            mean,
-            std,
-        )
+    ### Set up PGD, ADAM ###
+    train_steps = args.oracle_steps
+    train_restarts = args.oracle_restarts # // 2
+
+    test_steps = args.oracle_steps
+    test_restarts = args.oracle_restarts
+
+    def make_oracle(logic, steps, restarts):
+        if args.oracle == "pgd":
+            return training.PGD(
+                logic,
+                device,
+                steps,
+                restarts,
+                args.pgd_step_size,
+                mean,
+                std,
+            )
+        else:
+            return training.APGD(
+                logic,
+                device,
+                steps,
+                restarts,
+                mean,
+                std,
+            )
+
+    oracle_self_train = make_oracle(logic, train_steps, train_restarts)
+    oracle_self_test = make_oracle(logic, test_steps, test_restarts)
+    oracle_common_test = make_oracle(common_logic, test_steps, test_restarts)
 
     optimizer = optim.AdamW(N.parameters(), lr=args.lr, weight_decay=1e-4)
 
-    grad_norm = training.GradNorm(
-        N,
-        device,
-        optimizer,
-        lr=args.grad_norm_lr if args.grad_norm_lr is not None else args.lr,
-        alpha=args.grad_norm_alpha,
-        initial_dl_weight=args.initial_dl_weight,
-    )
-
     ### Set up folders for results and PGD images ###
 
-    if args.experiment_name is None:
-        if isinstance(constraint, constraints.StandardRobustnessConstraint):
-            folder = "standard-robustness"
-        elif isinstance(constraint, constraints.OppositeFacesConstraint):
-            folder = "opposite-faces"
-        # elif isinstance(constraint, constraints.LipschitzRobustnessConstraint): # TODO uncomment when implemented
-        # folder = "lipschitz-robustness"
-        # elif isinstance(constraint, constraints.GroupConstraint):
-        # folder = "group-constraint"
-        else:
-            raise ValueError(f"unknown constraint {constraint}!")
+    
+    if isinstance(constraint, constraints.StandardRobustnessConstraint):
+        folder = "standard-robustness"
+    elif isinstance(constraint, constraints.StrongClassificationRobustnessConstraint):
+        folder = "strong-classification-robustness"
+    elif isinstance(constraint, constraints.ClassificationRobustnessConstraint):
+        folder = "classification-robustness"
+    elif isinstance(constraint, constraints.ExactlyOnePerPairConstraint):
+        folder = "exactly-one"
+    elif isinstance(constraint, constraints.NotBothConstraint):
+        folder = "not-both"
+    elif isinstance(constraint, constraints.ClothingFootwearConstraint):
+        folder = "clothing-footwear"
     else:
-        folder = args.experiment_name
+        raise ValueError(f"unknown constraint {constraint}!")
 
-    folder_name = f"{args.results_dir}/{folder}/{args.dataset}"
+    folder_name = f"{args.results_dir}/{folder}/{args.dataset}/{args.seed}"
     file_name = f"{folder_name}/{logic.name if not is_baseline else 'Baseline'}"
 
     report_file_name = f"{file_name}.csv"
@@ -281,7 +328,7 @@ def main():
     os.makedirs(folder_name, exist_ok=True)
 
     if args.save_imgs:
-        save_dir = f"../saved_imgs/{folder}/{args.dataset}/{logic.name if not is_baseline else 'Baseline'}"
+        save_dir = f"../saved_imgs/{folder}/{args.dataset}/{args.seed}/{logic.name if not is_baseline else 'Baseline'}"
 
     ### Start training ###
 
@@ -299,17 +346,22 @@ def main():
                 "Train-P-Loss",
                 "Train-R-Loss",
                 "Train-C-Loss",
-                "Train-P-Loss-Weight",
-                "Train-C-Loss-Weight",
+                "Train-P-Grad",
+                "Train-C-Grad",
+                "Train-C-Weight",
+                "Train-Weighted-C-Grad",
+                "Train-Grad-Ratio", 
                 "Train-P-Metric",
                 "Train-C-Acc",
                 "Train-C-Sec",
                 "Test-P-Loss",
                 "Test-R-Loss",
-                "Test-C-Loss",
+                "Test-C-Loss-self",
+                "Test-C-Loss-common",
                 "Test-P-Metric",
                 "Test-C-Acc",
-                "Test-C-Sec",
+                "Test-C-Sec-self",
+                "Test-C-Sec-common",
                 "Train-Time",
                 "Test-Time",
             ]
@@ -320,53 +372,56 @@ def main():
 
             if epoch > 0:
                 with_dl = (epoch > args.delay) and (not is_baseline)
-                if not isinstance(N, AlsomitraNet):
-                    train_info = train(
-                        N,
-                        device,
-                        train_loader,
-                        optimizer,
-                        oracle_train,
-                        grad_norm,
-                        logic,
-                        constraint,
-                        with_dl,
-                        mode,
-                    )
-                else:
-                    train_info = train(
-                        N,
-                        device,
-                        train_loader,
-                        optimizer,
-                        oracle_train,
-                        grad_norm,
-                        logic,
-                        constraint,
-                        with_dl,
-                        mode,  # TODO: or hardcode Mode.Regression here?
-                    )
+                
+                train_info = train(
+                    epoch,
+                    N,
+                    device,
+                    train_loader,
+                    optimizer,
+                    oracle_self_train,
+                    logic,
+                    constraint,
+                    with_dl,
+                    mode,
+                    args.alpha
+                )                
                 train_time = time.time() - start
 
                 if args.save_imgs:
                     save_epoch_images(train_info, epoch, save_dir, mean, std)  # type: ignore
 
                 print(
-                    f"Epoch {epoch}/{args.epochs}\t {args.constraint if args.experiment_name is None else args.experiment_name} on {args.dataset}, {logic.name if not is_baseline else 'Baseline'} \t TRAIN \t P-Metric: {train_info.pred_metric:.6f} \t C-Acc: {train_info.constr_acc:.2f}\t C-Sec: {train_info.constr_sec:.2f}\t P-Loss: {train_info.pred_loss:.2f}\t R-Loss: {train_info.random_loss:.2f}\t DL-Loss: {train_info.constr_loss:.2f}\t Time (Train) [s]: {train_time:.1f}"
+                    f"Epoch {epoch}/{args.epochs}\t "
+                    f"{args.constraint} "
+                    f"on {args.dataset}, {logic.name if not is_baseline else 'Baseline'}\t TRAIN\t "
+                    f"Time [s]: {train_time:.1f}\t "
+                    f"P-Metric: {train_info.pred_metric:.4f}\t "
+                    f"C-Acc: {f'{train_info.constr_acc:.4f}' if train_info.constr_acc is not None else '   n/a'}\t "
+                    f"C-Sec: {f'{train_info.constr_sec:.4f}' if train_info.constr_sec is not None else '   n/a'}\t "
+                    f"P-Loss: {train_info.pred_loss:.2f}\t "
+                    f"R-Loss: {f'{train_info.random_loss:.6f}' if train_info.random_loss is not None else ' n/a'}\t "
+                    f"C-Loss: {f'{train_info.constr_loss:.6f}' if train_info.constr_loss is not None else ' n/a'}\t "
+                    f"P-Grad: {f'{train_info.pred_grad_norm:.2e}' if train_info.pred_grad_norm is not None else ' n/a'}\t "
+                    f"C-Grad: {f'{train_info.constr_grad_norm:.2e}' if train_info.constr_grad_norm is not None else ' n/a'}\t "
+                    f"Grad-Ratio: {f'{train_info.grad_ratio:.2f}' if train_info.grad_ratio is not None else ' n/a'}"
                 )
             else:
                 train_info = EpochInfoTrain(
-                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, None, None, None
+                    pred_metric=0.0, pred_loss=0.0, constr_sec=0.0
                 )
                 train_time = 0.0
 
             test_info = test(
+                epoch,
                 N,
                 device,
                 test_loader,
-                oracle_test,
+                oracle_self_test,
+                oracle_common_test,
                 logic,
                 constraint,
+                is_baseline,
                 mode,
             )
             test_time = time.time() - start - train_time
@@ -378,26 +433,42 @@ def main():
                 [
                     epoch,
                     train_info.pred_loss,
-                    train_info.random_loss,
+                    -1, # random loss, we don't evaluate that during training for performance
                     train_info.constr_loss,
-                    train_info.pred_loss_weight,
-                    train_info.constr_loss_weight,
+                    train_info.pred_grad_norm if train_info.pred_grad_norm is not None else -1,
+                    train_info.constr_grad_norm if train_info.constr_grad_norm is not None else -1,
+                    train_info.constr_loss_weight if train_info.constr_loss_weight is not None else -1,
+                    train_info.weighted_constr_grad_norm if train_info.weighted_constr_grad_norm is not None else -1,
+                    train_info.grad_ratio if train_info.grad_ratio is not None else -1,
                     train_info.pred_metric,
-                    train_info.constr_acc,
+                    -1, # c acc, we don't evaluate that during training for performance
                     train_info.constr_sec,
                     test_info.pred_loss,
                     test_info.random_loss,
-                    test_info.constr_loss,
+                    test_info.constr_loss_self if not is_baseline else -1,
+                    test_info.constr_loss_common,
                     test_info.pred_metric,
                     test_info.constr_acc,
-                    test_info.constr_sec,
+                    test_info.constr_sec_self if not is_baseline else -1,
+                    test_info.constr_sec_common,
                     train_time,
                     test_time,
                 ]
             )
 
             print(
-                f"Epoch {epoch}/{args.epochs}\t {args.constraint if args.experiment_name is None else args.experiment_name} on {args.dataset}, {logic.name if not is_baseline else 'Baseline'} \t TEST \t P-Metric: {test_info.pred_metric:.6f}\t C-Acc: {test_info.constr_acc:.2f}\t C-Sec: {test_info.constr_sec:.2f}\t P-Loss: {test_info.pred_loss:.2f}\t R-Loss: {test_info.random_loss:.2f}\t DL-Loss: {test_info.constr_loss:.2f}\t Time (Test) [s]: {test_time:.1f}"
+                f"Epoch {epoch}/{args.epochs}\t "
+                f"{args.constraint} "
+                f"on {args.dataset}, {logic.name if not is_baseline else 'Baseline'}\t TEST\t "
+                f"Time [s]: {test_time:.1f}\t "
+                f"P-Metric: {test_info.pred_metric:.4f}\t "
+                f"C-Acc: {test_info.constr_acc:.4f}\t "
+                f"C-Sec (self): {f'{test_info.constr_sec_self:.4f}' if not is_baseline else 'n/a'}\t "
+                f"C-Sec (common): {test_info.constr_sec_common:.4f}\t "
+                f"P-Loss: {test_info.pred_loss:.2f}\t "
+                f"R-Loss: {test_info.random_loss:.6f}\t "
+                f"C-Loss (self): {f'{test_info.constr_loss_self:.6f}' if not is_baseline else 'n/a'}\t "
+                f"C-Loss (common): {test_info.constr_loss_common:.6f}"
             )
             print("===")
 
@@ -409,7 +480,7 @@ def main():
 
         torch.onnx.export(
             N.eval(),
-            (dummy_input,),  # Wrap in tuple as expected
+            (dummy_input,),
             model_file_name,
             do_constant_folding=True,
             input_names=["input"],

@@ -40,7 +40,7 @@ class FuzzyLogic(Logic):
         Returns:
             Maps x == y into [0, 1] for real-valued x, y.
         """
-        return (x == y).to(dtype=x.dtype, device=x.device)
+        return torch.clamp(1.0 - torch.abs(safe_div(x - y, x + y)), min=0.0)
 
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Fuzzy less than or equal comparison.
@@ -50,11 +50,12 @@ class FuzzyLogic(Logic):
             y: Right-hand side tensor.
 
         Returns:
-            Maps x <= y into [0, 1] for real-valued x, y.
+            Maps x <= y into [0, 1] for real-valued x, y. TODO! this is now incorrect!
         """
-        return 1.0 - safe_div(
-            torch.clamp(x - y, min=0.0), (torch.abs(x) + torch.abs(y))
-        )
+        return torch.clamp(1.0 - torch.clamp(safe_div(x - y, x + y), min=0.0), min=0.0)
+    
+    def GT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return self.NOT(self.LEQ(x, y))
 
 
 class FuzzyLogicWithSNImplication(FuzzyLogic):
@@ -80,29 +81,13 @@ class GoedelFuzzyLogic(FuzzyLogic):
     def __init__(self, name="GD"):
         super().__init__(name)
 
-    def AND2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Gödel conjunction using the minimum t-norm.
+    def AND(self, *xs: torch.Tensor) -> torch.Tensor:
+        """n-ary Gödel conjunction using the minimum t-norm min(x, y)."""
+        return torch.min(torch.stack(xs, dim=0), dim=0).values
 
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            Element-wise minimum of x and y.
-        """
-        return torch.minimum(x, y)
-
-    def OR2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Gödel disjunction using the minimum t-conorm.
-
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            Element-wise maximum of x and y.
-        """
-        return torch.maximum(x, y)
+    def OR(self, *xs: torch.Tensor) -> torch.Tensor:
+        """n-ary Gödel disjunction using the minimum t-conorm max(x, y)."""
+        return torch.max(torch.stack(xs, dim=0), dim=0).values
 
     def IMPL(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Gödel R-implication using the minimum t-norm residuum.
@@ -115,6 +100,13 @@ class GoedelFuzzyLogic(FuzzyLogic):
             1.0 where x < y, otherwise y.
         """
         return torch.where(x < y, 1.0, y)
+    
+    def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return torch.where(
+            x <= y,
+            1.0 + 0.0 * x, # torch.ones_like(x),
+            y,
+        )
 
 
 class KleeneDienesFuzzyLogic(FuzzyLogicWithSNImplication, GoedelFuzzyLogic):
@@ -138,30 +130,17 @@ class LukasiewiczFuzzyLogic(FuzzyLogicWithSNImplication, FuzzyLogic):
 
     def __init__(self):
         super().__init__(name="LK")
-
-    def AND2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Łukasiewicz conjunction using the Łukasiewicz t-norm.
-
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            max(0, x + y - 1) for bounded conjunction.
-        """
-        return torch.maximum(torch.zeros_like(x), x + y - 1.0)
-
-    def OR2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Łukasiewicz disjunction using the Łukasiewicz t-conorm.
-
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            min(1, x + y) for bounded disjunction.
-        """
-        return torch.minimum(torch.ones_like(x), x + y)
+    
+    def AND(self, *xs: torch.Tensor) -> torch.Tensor:
+        """n-ary Łukasiewicz conjunction using the Łukasiewicz t-norm max(0, x + y - 1)."""
+        return torch.clamp(torch.sum(torch.stack(xs, dim=0), dim=0) - len(xs) + 1, min=0.0)
+    
+    def OR(self, *xs: torch.Tensor) -> torch.Tensor:
+        """Łukasiewicz disjunction using the Łukasiewicz t-conorm min(1, x + y)."""
+        return torch.clamp(torch.sum(torch.stack(xs), dim=0), max=1.0)
+    
+    def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return torch.clamp(1.0 - x + y, max=1.0)
 
 
 class ReichenbachFuzzyLogic(FuzzyLogicWithSNImplication, FuzzyLogic):
@@ -177,29 +156,20 @@ class ReichenbachFuzzyLogic(FuzzyLogicWithSNImplication, FuzzyLogic):
     def __init__(self, name="RC"):
         super().__init__(name)
 
-    def AND2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Reichenbach conjunction using the product t-norm.
+    def AND(self, *xs: torch.Tensor) -> torch.Tensor:
+        """n-ary Reichenbach conjunction using the product t-norm x * y."""
+        return torch.prod(torch.stack(xs, dim=0), dim=0)
 
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            The product t-norm x * y.
-        """
-        return x * y
-
-    def OR2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Reichenbach disjunction using probabilistic sum.
-
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            The probabilistic sum x + y - x*y.
-        """
-        return x + y - x * y
+    def OR(self, *xs: torch.Tensor) -> torch.Tensor:
+        """n-ary Reichenbach disjunction using probabilistic sum x + y - x * y (i.e. 1 - (1 - x) (1 - y))."""
+        return 1.0 - torch.prod(1.0 - torch.stack(xs, dim=0), dim=0)
+    
+    def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return torch.where(
+            x <= y,
+            1.0 + 0.0 * x, # torch.ones_like(x),
+            safe_div(y, x),
+        )
 
 
 class GoguenFuzzyLogic(ReichenbachFuzzyLogic):
@@ -277,43 +247,55 @@ class YagerFuzzyLogic(FuzzyLogic):
         p: Yager parameter controlling operator behavior (p >= 1).
     """
 
-    def __init__(self, p=2):
+    def __init__(self, p=5):
         super().__init__(name="YG")
         self.p = p
+    
+    def AND(self, *xs: torch.Tensor) -> torch.Tensor:
+        """n-ary Yager t-norm."""
+        eps = 1e-6
 
-    def AND2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Yager fuzzy conjunction.
-
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            Yager t-norm with parameter p.
-        """
-        return torch.clamp(
-            1.0
-            - safe_pow(
-                safe_pow(1.0 - x, self.p) + safe_pow(1.0 - y, self.p), 1.0 / self.p
-            ),
-            min=0.0,
+        z = torch.sum(
+            torch.pow(1.0 - torch.stack(xs, dim=0), self.p),
+            dim=0,
         )
 
-    def OR2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Yager fuzzy disjunction.
-
-        Args:
-            x: First tensor.
-            y: Second tensor.
-
-        Returns:
-            Yager t-conorm with parameter p.
-        """
         return torch.clamp(
-            safe_pow(safe_pow(x, self.p) + safe_pow(y, self.p), 1.0 / self.p), max=1.0
+            1.0 - torch.pow(torch.clamp(z, min=eps), 1.0 / self.p),
+            min=0.0,
+            max=1.0,
+        )
+    
+    def OR(self, *xs: torch.Tensor) -> torch.Tensor:
+        """n-ary Yager t-conorm."""
+        return torch.clamp(
+            torch.pow(
+                torch.sum(torch.pow(torch.stack(xs, dim=0), self.p), dim=0),
+                1.0 / self.p
+            ),
+            max=1.0
         )
 
     def IMPL(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.where(
             torch.logical_and(x == 0.0, y == 0.0), torch.ones_like(x), safe_pow(y, x)
+        )
+    
+    def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        eps = 1e-6
+
+        diff = (
+            torch.pow(torch.clamp(1.0 - y, min=0.0), self.p)
+            - torch.pow(torch.clamp(1.0 - x, min=0.0), self.p)
+        )
+
+        violation = 1.0 - torch.pow(
+            torch.clamp(diff, min=eps),
+            1.0 / self.p,
+        )
+
+        return torch.where(
+            x <= y,
+            torch.ones_like(x),
+            violation,
         )

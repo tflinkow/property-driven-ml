@@ -7,7 +7,11 @@ from .postconditions import (
     LipschitzRobustnessPostcondition,
     Postcondition,
     StandardRobustnessPostcondition,
-    OppositeFacesPostcondition,
+    StrongClassificationRobustnessPostcondition,
+    ClassificationRobustnessPostcondition,
+    ExactlyOnePerPairPostcondition,
+    ClothingFootwearPostcondition,
+    NotBothPostcondition,
     AlsomitraOutputPostcondition,
 )
 from .preconditions import (
@@ -16,9 +20,8 @@ from .preconditions import (
     AlsomitraProperty1,
     AlsomitraProperty2,
     AlsomitraProperty3,
-    AlsomitraProperty4,
 )
-from property_driven_ml.logics import Logic, FuzzyLogic, STL, BooleanLogic
+from property_driven_ml.logics import Logic, FuzzyLogic, STL, BooleanLogic, QLL
 
 from abc import ABC, abstractmethod
 
@@ -78,6 +81,9 @@ class Constraint(ABC):
             Tensor of shape (num_samples, *x.shape) containing uniform samples.
         """
         lo, hi = self.precondition.get_bounds(x, *args, **kwargs)
+
+        # TODO: remove code from Alsomitra Input Region base classes; automatically obtain min and max based on train_loader
+        
         if lo.isnan().any() or hi.isnan().any():
             if self.min is not None and self.max is not None:
                 lo = torch.max(lo, self.min.to(self.device))
@@ -104,6 +110,7 @@ class Constraint(ABC):
         logic: Logic,
         reduction: str | None = None,
         skip_sat: bool = False,
+        is_attack: bool = False,
         postcondition_kwargs: dict = {},
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Evaluate the constraint and compute loss and satisfaction.
@@ -113,10 +120,10 @@ class Constraint(ABC):
         only passing those parameters.
 
         Examples of supported postcondition signatures:
-            get_postcondition(self, N, x, x_adv)              # StandardRobustness
-            get_postcondition(self, N, x_adv)                 # GroupConstraint and OppositeFacesConstraint
-            get_postcondition(self, N, x_adv, scale, centre)  # AlsomitraOutput
-            get_postcondition(self, N, x, x_adv, y_target)    # Future constraints
+            build_postcondition(self, N, x, x_adv)              # StandardRobustness
+            build_postcondition(self, N, x_adv)                 # GroupConstraint and VisibleHigherConstraint
+            build_postcondition(self, N, x_adv, scale, centre)  # AlsomitraOutput
+            build_postcondition(self, N, x, x_adv, y_target)    # Future constraints
 
         Args:
             N: Neural network model.
@@ -126,7 +133,7 @@ class Constraint(ABC):
             logic: Logic framework for constraint evaluation.
             reduction: Optional reduction method for loss aggregation.
             skip_sat: Whether to skip satisfaction computation.
-            postcondition_args: Additional arguments to pass to get_postcondition
+            postcondition_args: Additional arguments to pass to build_postcondition
                                   (e.g., scale, centre for AlsomitraOutputConstraint).
 
         Returns:
@@ -135,8 +142,8 @@ class Constraint(ABC):
         if x_adv is None:
             x_adv = self.uniform_sample(x, num_samples=1).squeeze(0)
 
-        # Get the signature of the postcondition's get_postcondition method
-        sig = inspect.signature(self.postcondition.get_postcondition)
+        # Get the signature of the postcondition's build_postcondition method
+        sig = inspect.signature(self.postcondition.build_postcondition)
 
         # Build a dictionary of all available parameters
         available_params = {
@@ -163,7 +170,7 @@ class Constraint(ABC):
                 pass
 
         # Call the method with only the parameters it accepts
-        postcondition = self.postcondition.get_postcondition(**method_params)
+        postcondition = self.postcondition.build_postcondition(**method_params)
 
         loss = postcondition(logic)
         assert not torch.isnan(loss).any()  # nosec
@@ -171,7 +178,10 @@ class Constraint(ABC):
         if isinstance(logic, FuzzyLogic):
             loss = torch.ones_like(loss) - loss
         elif isinstance(logic, STL):
-            loss = torch.clamp(logic.NOT(loss), min=0.0)
+            if is_attack:
+                loss = -loss
+            else:
+                loss=-loss
 
         if skip_sat:
             # When skipping sat calculation, return a dummy tensor with same shape as loss
@@ -223,6 +233,44 @@ class StandardRobustnessConstraint(Constraint):
         self.postcondition = StandardRobustnessPostcondition(device, delta)
 
 
+class StrongClassificationRobustnessConstraint(Constraint):
+    """Constraint ensuring model robustness to adversarial perturbations.
+
+    Combines an epsilon ball precondition with a strong classification robustness postcondition.
+    Enforces that the model predicts the true label for the adversarial inputs.
+    """
+
+    def __init__(
+        self,
+        device: torch.device,
+        epsilon: float,
+        delta: float | torch.Tensor,
+        std: Tuple[float, ...] | float | None = None,
+    ):
+        """Initialize StrongClassificationRobustnessConstraint.
+
+        Args:
+            device: PyTorch device for tensor computations.
+            epsilon: Radius for epsilon ball precondition.
+            std: Standard deviation for epsilon scaling.
+        """
+        super().__init__(device)
+        self.precondition = EpsilonBall(device, epsilon, std)
+        self.postcondition = StrongClassificationRobustnessPostcondition(device, delta)
+
+
+class ClassificationRobustnessConstraint(Constraint):
+    def __init__(
+        self,
+        device: torch.device,
+        epsilon: float,
+        std: Tuple[float, ...] | float | None = None,
+    ):
+        super().__init__(device)
+        self.precondition = EpsilonBall(device, epsilon, std)
+        self.postcondition = ClassificationRobustnessPostcondition(device)
+
+
 class LipschitzRobustnessConstraint(Constraint):
     """Constraint ensuring Lipschitz robustness of the model."""
 
@@ -243,7 +291,19 @@ class LipschitzRobustnessConstraint(Constraint):
         self.postcondition = LipschitzRobustnessPostcondition(device, L)
 
 
-class OppositeFacesConstraint(Constraint):
+class ClothingFootwearConstraint(Constraint):
+    def __init__(
+        self,
+        device: torch.device,
+        epsilon: float,
+        std: Tuple[float, ...] | float | None = None,
+    ):
+        super().__init__(device)
+        self.precondition = EpsilonBall(device, epsilon, std)
+        self.postcondition = ClothingFootwearPostcondition(device)
+
+
+class ExactlyOnePerPairConstraint(Constraint):
     """Constraint ensuring a physical-world inspired constraint on dice images.
 
     Combines an epsilon ball precondition with a constraint on the outputs
@@ -254,10 +314,10 @@ class OppositeFacesConstraint(Constraint):
     def __init__(
         self,
         device: torch.device,
-        epsilon: float = 24 / 255,
+        epsilon: float = 24/255,
         std: Tuple[float, ...] | float | None = None,
     ):
-        """Initialize OppositeFacesConstraint.
+        """Initialize VisibleHigherConstraint.
 
         Args:
             device: PyTorch device for tensor computations.
@@ -266,7 +326,33 @@ class OppositeFacesConstraint(Constraint):
         """
         super().__init__(device)
         self.precondition = EpsilonBall(device, epsilon, std)
-        self.postcondition = OppositeFacesPostcondition(device)
+        self.postcondition = ExactlyOnePerPairPostcondition(device)
+
+
+class NotBothConstraint(Constraint):
+    """Constraint ensuring a physical-world inspired constraint on dice images.
+
+    Combines an epsilon ball precondition with a constraint on the outputs
+    that enforces that the network may not predict faces at the same time that are
+    on opposite sides of the die (e.g. faces 1 and 6).
+    """
+
+    def __init__(
+        self,
+        device: torch.device,
+        epsilon: float = 24/255,
+        std: Tuple[float, ...] | float | None = None,
+    ):
+        """Initialize VisibleHigherConstraint.
+
+        Args:
+            device: PyTorch device for tensor computations.
+            epsilon: Radius for epsilon ball precondition.
+            std: Standard deviation for epsilon scaling.
+        """
+        super().__init__(device)
+        self.precondition = EpsilonBall(device, epsilon, std)
+        self.postcondition = NotBothPostcondition(device)
 
 
 class AlsomitraProperty1Constraint(Constraint):
@@ -276,16 +362,17 @@ class AlsomitraProperty1Constraint(Constraint):
         self,
         device: torch.device,
         y_threshold: float = 2.0,
-        bounds_output: Tuple[Optional[float], Optional[float]] = (0.187, np.nan),
+        theta_threshold: Tuple[float, float] = (-0.786, 0.747),
+        bounds_output: Tuple[float, float] = (0.184, 0.19),
     ):
         """Initialize AlsomitraProperty1Constraint.
 
         Args:
             y_threshold: Threshold for the y input.
-            bounds_output: Tuple specifying (min, max) bounds for the output e.
+            theta_threshold: Tuple specifying (min, max) bounds for the theta input.
         """
         super().__init__(device)
-        self.precondition = AlsomitraProperty1(device, y_threshold)
+        self.precondition = AlsomitraProperty1(device, y_threshold, theta_threshold)
         self.postcondition = AlsomitraOutputPostcondition(
             device, lo=bounds_output[0], hi=bounds_output[1]
         )
@@ -298,17 +385,20 @@ class AlsomitraProperty2Constraint(Constraint):
         self,
         device: torch.device,
         y_threshold: float = 2.0,
-        theta_threshold: Tuple[float, float] = (-0.786, 0.747),
-        bounds_output: Tuple[Optional[float], Optional[float]] = (0.184, 0.19),
+        v_y_threshold: float = -0.3,
+        omega_threshold: float = -0.12,
+        bounds_output: Tuple[float, float] = (np.nan, 0.187),
     ):
         """Initialize AlsomitraProperty2Constraint.
 
         Args:
-            y_threshold: Threshold for the y input.
-            theta_threshold: Tuple specifying (min, max) bounds for the theta input.
+            y_threshold: Threshold for the y output.
+            theta_threshold: Tuple specifying (min, max) bounds for the theta output.
         """
         super().__init__(device)
-        self.precondition = AlsomitraProperty2(device, y_threshold, theta_threshold)
+        self.precondition = AlsomitraProperty2(
+            device, y_threshold, v_y_threshold, omega_threshold
+        )
         self.postcondition = AlsomitraOutputPostcondition(
             device, lo=bounds_output[0], hi=bounds_output[1]
         )
@@ -321,40 +411,14 @@ class AlsomitraProperty3Constraint(Constraint):
         self,
         device: torch.device,
         y_threshold: float = 2.0,
-        v_y_threshold: float = -0.3,
-        omega_threshold: float = -0.12,
-        bounds_output: Tuple[Optional[float], Optional[float]] = (np.nan, 0.187),
-    ):
-        """Initialize AlsomitraProperty3Constraint.
-
-        Args:
-            y_threshold: Threshold for the y output.
-            theta_threshold: Tuple specifying (min, max) bounds for the theta output.
-        """
-        super().__init__(device)
-        self.precondition = AlsomitraProperty3(
-            device, y_threshold, v_y_threshold, omega_threshold
-        )
-        self.postcondition = AlsomitraOutputPostcondition(
-            device, lo=bounds_output[0], hi=bounds_output[1]
-        )
-
-
-class AlsomitraProperty4Constraint(Constraint):
-    """Constraint for Alsomitra Property 4."""
-
-    def __init__(
-        self,
-        device: torch.device,
-        y_threshold: float = 2.0,
         L: float = 0.3,
     ):
-        """Initialize AlsomitraProperty4Constraint.
+        """Initialize AlsomitraProperty3Constraint.
 
         Args:
             device: PyTorch device for tensor computations.
             y_threshold: Threshold for the y output.
         """
         super().__init__(device)
-        self.precondition = AlsomitraProperty4(device, y_threshold)
+        self.precondition = AlsomitraProperty3(device, y_threshold)
         self.postcondition = LipschitzRobustnessPostcondition(device, L=L)

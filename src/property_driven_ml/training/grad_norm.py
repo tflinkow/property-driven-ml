@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import annotations
 
 import torch
 
@@ -26,11 +26,11 @@ class GradNorm:
         optimizer,
         lr: float,
         alpha: float,
-        initial_dl_weight=1.0,
+        initial_dl_weight: float = 1.0,
     ):
         self.initial_loss = None
-        self.weights = torch.tensor(
-            [2.0 - initial_dl_weight, initial_dl_weight], requires_grad=True
+        self.weights = torch.nn.Parameter(
+            torch.tensor([2.0 - initial_dl_weight, initial_dl_weight], device=device)
         )
         self.N = N
         self.device = device
@@ -38,69 +38,74 @@ class GradNorm:
         self.optimizer_weights = torch.optim.Adam([self.weights], lr=lr)
         self.alpha = alpha
 
-    def balance(self, ce_loss: torch.Tensor, dl_loss: torch.Tensor):
-        """Balance the weights between cross-entropy and DL losses.
+    def _grad_norm(self, loss: torch.Tensor) -> torch.Tensor:
+        grads = torch.autograd.grad(
+            loss,
+            list(self.N.fc1.parameters()),
+            retain_graph=True,
+            create_graph=True,
+            allow_unused=True,
+        )
+
+        grads = [g.reshape(-1) for g in grads if g is not None]
+
+        if not grads:
+            return torch.zeros((), device=self.device)
+
+        return torch.norm(torch.cat(grads), p=2)
+
+    def balance(self, pred_loss: torch.Tensor, dl_loss: torch.Tensor):
+        """Balance the weights between prediction and constraint losses.
 
         Uses gradient magnitudes to automatically adjust loss weights
         for more stable multi-task training.
 
         Args:
-            ce_loss: Cross-entropy loss tensor.
-            dl_loss: Deep learning constraint loss tensor.
+            pred_loss: Prediction loss tensor (e.g. cross-entropy).
+            dl_loss: Differentiable logic loss tensor.
 
         Returns:
-            Tuple of (weighted_ce_loss, weighted_dl_loss).
+            Tuple of (weighted_pred_loss, weighted_dl_loss).
         """
-        task_loss = torch.stack([ce_loss, dl_loss])
+        tasks = torch.stack([pred_loss, dl_loss])
 
         if self.initial_loss is None:
-            initial_loss = task_loss.detach()
+            self.initial_loss = tasks.detach().clone()
 
-            # prevent division by zero later
-            self.initial_loss = torch.where(
-                initial_loss == 0.0, torch.finfo(initial_loss.dtype).eps, initial_loss
-            )
+        # keep weights positive and normalized
+        with torch.no_grad():
+            self.weights.clamp_(min=1e-8)
+            self.weights.mul_(2.0 / self.weights.sum())
 
-        weighted_task_loss = self.weights[0] * ce_loss + self.weights[1] * dl_loss
-        weighted_task_loss.backward()
+        weighted_tasks = self.weights * tasks
 
-        self.optimizer_train.step()
+        # compute per-task gradient norms G_i = ||grad_W (w_i L_i)||_2
+        G = torch.stack([
+            self._grad_norm(weighted_tasks[0]),
+            self._grad_norm(weighted_tasks[1]),
+        ])
 
-        norms = []
+        # relative inverse training rates
+        loss_ratio = tasks.detach() / self.initial_loss
+        inv_rate = loss_ratio / loss_ratio.mean()
 
-        for weight in self.weights:
-            # Collect gradient norms for all parameters with gradients
-            grad_norms = torch.stack(
-                [p.grad.norm() ** 2 for p in self.N.parameters() if p.grad is not None]
-            )
+        # target is treated as constant w.r.t. weights
+        target = G.detach().mean() * (inv_rate ** self.alpha)
 
-            # Use torch.sum instead of built-in sum to ensure tensor output
-            total_grad_norm_squared = (
-                torch.sum(grad_norms)
-                if len(grad_norms) > 0
-                else torch.tensor(0.0, device=self.device)
-            )
+        gradnorm_loss = torch.abs(G - target).sum()
 
-            norms.append(weight * torch.sqrt(total_grad_norm_squared))
-
-        norms = torch.stack(norms)
-
-        loss_ratio = (
-            torch.stack([ce_loss.detach(), dl_loss.detach()]) / self.initial_loss
-        )
-        inverse_train_rate = loss_ratio / loss_ratio.mean()
-
-        mean_norm = norms.mean()
-        constant_term = mean_norm * (inverse_train_rate**self.alpha)
-        grad_norm_loss = (norms - constant_term).abs().sum()
-
+        # update weights
         self.optimizer_weights.zero_grad(set_to_none=True)
-        grad_norm_loss.backward()
+        gradnorm_loss.backward(retain_graph=True)
         self.optimizer_weights.step()
 
-    @torch.no_grad
-    def renormalise(self):
-        normalise_coeff = 2.0 / torch.sum(self.weights.data, dim=0)
-        self.weights.data = self.weights.data * normalise_coeff
+        # normalise weights to be >= 0 and add up to 2
+        with torch.no_grad():
+            self.weights.clamp_(min=1e-8)
+            self.weights.mul_(2.0 / self.weights.sum())
 
-        print(f"GradNorm weights={self.weights.data}")
+        # update model
+        self.optimizer_train.zero_grad(set_to_none=True)
+        total_loss = (self.weights.detach() * tasks).sum()
+        total_loss.backward()
+        self.optimizer_train.step()

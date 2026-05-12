@@ -12,7 +12,7 @@ from typing import Tuple
 
 from property_driven_ml.training.mode import Mode
 
-from examples.models import MnistNet
+from examples.models import MnistNetSmall
 
 
 def create_mnist_datasets(
@@ -60,6 +60,6 @@ def create_mnist_datasets(
     train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)
 
-    model = MnistNet()
+    model = MnistNetSmall()
 
     return train_loader, test_loader, model, (mean, std), Mode.MultiClassClassification

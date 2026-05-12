@@ -4,6 +4,9 @@ from abc import ABC, abstractmethod
 from functools import reduce
 
 
+# TODO: possibly not very clean, but we expect deriving classes to override 
+# either EQ or NEQ, LEQ or GEQ, LT or GT, (whatever suits them) but don't really enforce it
+# (could lead to infinite recursion during development)
 class Logic(ABC):
     """Abstract base class for logical frameworks used in property-driven learning.
 
@@ -29,7 +32,6 @@ class Logic(ABC):
         """
         pass
 
-    # TODO: possibly not very clean, we expect deriving classes to override either EQ or NEQ (whatever suits them) but don't enforce it
     def NEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Inequality in this logic framework.
 
@@ -54,7 +56,6 @@ class Logic(ABC):
         """
         return self.NOT(self.NEQ(x, y))
 
-    @abstractmethod
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Less than or equal comparison in this logic framework.
 
@@ -65,7 +66,7 @@ class Logic(ABC):
         Returns:
             Tensor representing x <= y in this logic.
         """
-        pass
+        return self.GEQ(y, x)
 
     def GEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Greater than or equal comparison in this logic framework.
@@ -89,7 +90,7 @@ class Logic(ABC):
         Returns:
             Tensor representing x < y in this logic.
         """
-        return self.AND(self.LEQ(x, y), self.NEQ(x, y))
+        return self.GT(y, x)
 
     def GT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Greater than comparison in this logic framework.
@@ -131,11 +132,8 @@ class Logic(ABC):
 
         Returns:
             Tensor representing x AND y.
-
-        Raises:
-            NotImplementedError: If not implemented by subclass.
         """
-        raise NotImplementedError("AND2 must be implemented if AND is not overridden.")
+        return self.AND(x, y)
 
     def OR(self, *xs: torch.Tensor) -> torch.Tensor:
         """Logical disjunction of multiple tensors.
@@ -165,11 +163,8 @@ class Logic(ABC):
 
         Returns:
             Tensor representing x OR y.
-
-        Raises:
-            NotImplementedError: If not implemented by subclass.
         """
-        raise NotImplementedError("OR2 must be implemented if OR is not overridden.")
+        return self.OR(x, y)
 
     def IMPL(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Logical implication in this logic.

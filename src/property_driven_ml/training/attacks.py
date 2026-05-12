@@ -160,7 +160,7 @@ class PGD(Attack):
             x_adv.requires_grad_(True)
 
             loss, _ = constraint.eval(
-                N, x, x_adv, y, self.logic, reduction="mean", skip_sat=True
+                N, x, x_adv, y, self.logic, reduction="mean", skip_sat=True, is_attack=True
             )
 
             grad = torch.autograd.grad(
@@ -296,7 +296,7 @@ class APGD(Attack):
         for _ in range(self.eot_iter):
             with torch.enable_grad():
                 loss_indiv, _ = constraint.eval(
-                    N, x, x_adv, y, self.logic, reduction=None, skip_sat=True
+                    N, x, x_adv, y, self.logic, reduction=None, skip_sat=True, is_attack=True
                 )
                 loss = loss_indiv.sum()
 
@@ -350,7 +350,7 @@ class APGD(Attack):
             for _ in range(self.eot_iter):
                 with torch.enable_grad():
                     loss_indiv, _ = constraint.eval(
-                        N, x, x_adv, y, self.logic, reduction=None, skip_sat=True
+                        N, x, x_adv, y, self.logic, reduction=None, skip_sat=True, is_attack=True
                     )
                     loss = loss_indiv.sum()
 

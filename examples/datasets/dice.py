@@ -22,7 +22,11 @@ import os
 
 class DiceDataset(torch.utils.data.Dataset):
     def __init__(
-        self, csv_path: str, image_dir: str, transform=None, indices: np.ndarray = None
+        self,
+        csv_path: str,
+        image_dir: str,
+        transform = None,
+        indices: np.ndarray = None
     ):
         """
         Initialize DiceDataset.
@@ -41,7 +45,7 @@ class DiceDataset(torch.utils.data.Dataset):
 
     def get_mean_std(self) -> Tuple[Tuple[float, ...], Tuple[float, ...]]:
         imgs = []
-
+        
         for row in self.data.itertuples():
             img_path = os.path.join(self.image_dir, row.filename)
             img = Image.open(img_path).convert("RGB")
@@ -49,9 +53,7 @@ class DiceDataset(torch.utils.data.Dataset):
             imgs.append(img)
 
         imgs = np.stack(imgs)  # N,H,W,C
-        return tuple(imgs.mean(axis=(0, 1, 2)).tolist()), tuple(
-            imgs.std(axis=(0, 1, 2)).tolist()
-        )
+        return tuple(imgs.mean(axis=(0,1,2)).tolist()), tuple(imgs.std(axis=(0,1,2)).tolist())
 
     def __len__(self):
         return len(self.data)
@@ -68,9 +70,7 @@ class DiceDataset(torch.utils.data.Dataset):
         return image, labels
 
 
-def create_dice_datasets(
-    batch_size: int, train_split: float = 0.8, normalise: bool = True, seed: int = 42
-):
+def create_dice_datasets(batch_size: int, train_split: float = 0.8, normalise: bool = True, seed: int = 42):
     """
     Create dice train and test data loaders.
 
@@ -85,13 +85,24 @@ def create_dice_datasets(
 
     # create train and test splits
     data_all = pd.read_csv(csv_path)
+
+    # # global dataset statistics
+    # labels_all = data_all.iloc[:, 1:]
+    # label_counts = labels_all.sum(axis=0)
+    # label_freqs = 100 * label_counts / len(data_all)
+
+    # print("Global label counts:")
+    # print(label_counts.astype(int))
+
+    # print("\nGlobal label frequencies (%):")
+    # print(label_freqs.round(1))
+
     perm = np.random.RandomState(seed).permutation(len(data_all))
     split_idx = int(train_split * len(data_all))
     train_idx, test_idx = perm[:split_idx], perm[split_idx:]
 
     # get mean and std
     mean, std = DiceDataset(csv_path, image_dir, indices=train_idx).get_mean_std()
-    print(f"mean={mean}, std={std}")
 
     train_transforms = [
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.03),
@@ -107,18 +118,8 @@ def create_dice_datasets(
         train_transforms.append(transforms.Normalize(mean, std))
         test_transforms.append(transforms.Normalize(mean, std))
 
-    dataset_train = DiceDataset(
-        csv_path,
-        image_dir,
-        transform=transforms.Compose(train_transforms),
-        indices=train_idx,
-    )
-    dataset_test = DiceDataset(
-        csv_path,
-        image_dir,
-        transform=transforms.Compose(test_transforms),
-        indices=test_idx,
-    )
+    dataset_train = DiceDataset(csv_path, image_dir, transform=transforms.Compose(train_transforms), indices=train_idx)
+    dataset_test  = DiceDataset(csv_path, image_dir, transform=transforms.Compose(test_transforms), indices=test_idx)
 
     train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)

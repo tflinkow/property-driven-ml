@@ -7,7 +7,7 @@ from typing import Tuple
 
 class Precondition(ABC):
     """
-    Abstract base class for preconditions/ input postconditions.
+    Abstract base class for preconditions / input constraints.
     """
 
     @abstractmethod
@@ -193,14 +193,8 @@ class AlsomitraBase(Precondition):
         Initialize the Alsomitra input region precondition.
         """
         self.device = device
-        self.min = torch.tensor(
-            [0.967568, -0.607397, -0.356973, -0.968479, 0.482421, -41.681405],
-            device=self.device,
-        )
-        self.max = torch.tensor(
-            [3.489893, -0.043021, 0.049180, -0.068003, 41.714717, 4.197234],
-            device=self.device,
-        )
+        self.min = torch.tensor([0.967568, -0.607397, -0.356973, -0.968479, 0.482421, -41.681405], device=self.device)
+        self.max = torch.tensor([3.489893, -0.043021, 0.049180, -0.068003, 41.714717, 4.197234], device=self.device)
         # Define indices for each feature for clarity
         self.v_x = 0
         self.v_y = 1
@@ -210,13 +204,16 @@ class AlsomitraBase(Precondition):
         self.y = 5
 
     # replace unbounded (nan) bounds with Alsomitra domain-specific min / max values
-    def apply_domain_bounds(
-        self, lo: torch.Tensor, hi: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def apply_domain_bounds(self, lo: torch.Tensor, hi: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        # replace unbounded dimensions with domain min and max
         lo = torch.where(torch.isnan(lo), self.min, lo)
         hi = torch.where(torch.isnan(hi), self.max, hi)
 
-        return lo, hi
+        # ensure valid inputs
+        lo = torch.maximum(lo, self.min)
+        hi = torch.minimum(hi, self.max)
+
+        return self.normalize(lo), self.normalize(hi)
 
     def normalize(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -247,39 +244,7 @@ class AlsomitraProperty1(AlsomitraBase):
     """
     Specialized precondition for Alsomitra aerodynamics data.
 
-    Intended for use in first Alsomitra constraint.
-    """
-
-    def __init__(self, device: torch.device, y_threshold: float) -> None:
-        super().__init__(device)
-        self.y_threshold = y_threshold
-
-    def get_bounds(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Get the precondition function for the Alsomitra input region.
-
-        Returns:
-            lo, hi: Tensors defining lower and upper bounds for the Alsomitra input region.
-        """
-        x_problem = self.denormalize(x)
-
-        lo = x_problem.clone()
-        lo[:, self.y] = self.y_threshold - x_problem[:, self.x]
-
-        hi = x_problem.clone()
-
-        lo = self.normalize(lo)
-        hi = self.normalize(hi)
-        hi[:, self.y] = np.nan  # No upper bound for y-coordinate
-
-        return self.apply_domain_bounds(lo, hi)
-
-
-class AlsomitraProperty2(AlsomitraBase):
-    """
-    Specialized precondition for Alsomitra aerodynamics data.
-
-    Intended for use in second Alsomitra constraint.
+    Intended for use in the first Alsomitra constraint.
     """
 
     def __init__(
@@ -294,8 +259,6 @@ class AlsomitraProperty2(AlsomitraBase):
         Args:
             y_threshold: Threshold for the y-coordinate relative to x.
             theta_thresholds: Tuple defining (min, max) bounds for the theta angle.
-            min: Tensor defining minimum bounds for input dimensions.
-            max: Tensor defining maximum bounds for input dimensions.
         """
         super().__init__(device)
         self.y_threshold = y_threshold
@@ -311,8 +274,8 @@ class AlsomitraProperty2(AlsomitraBase):
 
         x_problem = self.denormalize(x)
 
-        lo = x_problem.clone()
-        hi = x_problem.clone()
+        lo = torch.full_like(x_problem, torch.nan)
+        hi = torch.full_like(x_problem, torch.nan)
 
         lo[:, self.y] = -self.y_threshold - x_problem[:, self.x]
         hi[:, self.y] = self.y_threshold - x_problem[:, self.x]
@@ -322,11 +285,11 @@ class AlsomitraProperty2(AlsomitraBase):
         return self.apply_domain_bounds(lo, hi)
 
 
-class AlsomitraProperty3(AlsomitraBase):
+class AlsomitraProperty2(AlsomitraBase):
     """
     Specialized precondition for Alsomitra aerodynamics data.
 
-    Intended for use in third Alsomitra constraint.
+    Intended for use in second Alsomitra constraint.
     """
 
     def __init__(
@@ -359,8 +322,8 @@ class AlsomitraProperty3(AlsomitraBase):
 
         x_problem = self.denormalize(x)
 
-        lo = x_problem.clone()
-        hi = x_problem.clone()
+        lo = torch.full_like(x_problem, torch.nan)
+        hi = torch.full_like(x_problem, torch.nan)
 
         lo[:, self.y] = -x_problem[:, self.x]
         hi[:, self.y] = self.y_threshold - x_problem[:, self.x]
@@ -375,11 +338,11 @@ class AlsomitraProperty3(AlsomitraBase):
         return self.apply_domain_bounds(lo, hi)
 
 
-class AlsomitraProperty4(AlsomitraBase):
+class AlsomitraProperty3(AlsomitraBase):
     """
     Specialized precondition for Alsomitra aerodynamics data.
 
-    Intended for use in fourth Alsomitra constraint.
+    Intended for use in the third Alsomitra constraint.
     """
 
     def __init__(self, device: torch.device, y_threshold: float) -> None:
@@ -399,11 +362,10 @@ class AlsomitraProperty4(AlsomitraBase):
         Returns:
             lo, hi: Tensors defining lower and upper bounds for the Alsomitra input region.
         """
-
         x_problem = self.denormalize(x)
 
-        lo = x_problem.clone()
-        hi = x_problem.clone()
+        lo = torch.full_like(x_problem, torch.nan)
+        hi = torch.full_like(x_problem, torch.nan)
 
         lo[:, self.y] = -self.y_threshold - x_problem[:, self.x]
         hi[:, self.y] = self.y_threshold - x_problem[:, self.x]

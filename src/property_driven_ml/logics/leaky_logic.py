@@ -4,6 +4,8 @@ from .logic import Logic
 
 from typing import NoReturn
 
+from ..utils import safe_pow
+
 
 class LeakyLogic(Logic):
     """Implementation of LeakyLogic, based on DL2 but with gradients even when constraints are satisfied.
@@ -12,8 +14,9 @@ class LeakyLogic(Logic):
     logical formulas into loss.
     """
 
-    def __init__(self):
+    def __init__(self, p: float = 2):
         super().__init__("LL")
+        self.p = p
 
     def NOT(self, x: torch.Tensor) -> NoReturn:
         """LeakyLogic logical negation.
@@ -33,35 +36,21 @@ class LeakyLogic(Logic):
         )
 
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        tau = 2e-1
-        delta = 0.0  # 3e-1
-        return torch.nn.functional.softplus((x - y - delta) / tau) * tau
+        return torch.nn.functional.softplus((x - y))
 
-    def GT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def LT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         delta = 1e-3
-        return self.LEQ(y + delta, x)
+        return self.LEQ(x + delta, y)
+    
+    def p_sum(self, *xs: torch.Tensor, p: float) -> torch.Tensor:
+        x = torch.stack(xs, dim=0)
 
-    # 1. LSE
-    # def AND(self, *xs: torch.Tensor, tau: float = 0.2) -> torch.Tensor:
-    #     # smaller tau -> sharper, closer to exact max
-    #     return tau * torch.logsumexp(torch.stack(xs, dim=0) / tau, dim=0)
+        return safe_pow(torch.sum(safe_pow(x, p), dim=0), 1.0 / p)
 
-    # def OR(self, *xs: torch.Tensor, tau: float = 0.2) -> torch.Tensor:
-    #     # smaller tau -> sharper, closer to exact min
-    #     return -tau * torch.logsumexp(-torch.stack(xs, dim=0) / tau, dim=0)
-
-    # generalised mean
-    def p_mean(self, *xs: torch.Tensor, p: float, eps: float = 1e-8) -> torch.Tensor:
-        values = torch.stack([torch.clamp(x, min=0.0) + eps for x in xs], dim=0)
-        return torch.pow(torch.mean(torch.pow(values, p), dim=0), 1.0 / p)
-
-    # 2. p mean
     def AND(self, *xs: torch.Tensor) -> torch.Tensor:
-        # p > 0 !! important
-        # greater p = sharper max (i.e. closer to normal max)
-        return self.p_mean(*xs, p=2.0)
+        # p -> infty means sharper max (i.e. closer to standard max)
+        return self.p_sum(*xs, p=self.p)
 
     def OR(self, *xs: torch.Tensor) -> torch.Tensor:
-        # p < 0 !! important
-        # smaller p = sharper min (i.e. closer to normal min)
-        return self.p_mean(*xs, p=-2.0)
+        # p -> -infty means sharper min (i.e. closer to standard min)
+        return self.p_sum(*xs, p=-self.p)

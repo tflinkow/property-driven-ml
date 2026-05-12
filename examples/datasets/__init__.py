@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from property_driven_ml.training.mode import Mode
 
 from .mnist import create_mnist_datasets
+from .fashion import create_fashion_mnist_datasets
 from .alsomitra import create_alsomitra_datasets, AlsomitraDataset
 from .dice import create_dice_datasets
 from .gtsrb import create_gtsrb_datasets
@@ -20,6 +21,7 @@ from .gtsrb import create_gtsrb_datasets
 # Registry of available dataset creators
 DATASET_CREATORS: Dict[str, Callable] = {
     "mnist": create_mnist_datasets,
+    "fashion": create_fashion_mnist_datasets,
     "alsomitra": create_alsomitra_datasets,
     "dice": create_dice_datasets,
     "gtsrb": create_gtsrb_datasets,
@@ -95,6 +97,7 @@ __all__ = [
     "register_dataset",
     "DATASET_CREATORS",
     "create_mnist_datasets",
+    "create_fashion_mnist_datasets",
     "create_alsomitra_datasets",
     "create_dice_datasets",
     "create_gtsrb_datasets",

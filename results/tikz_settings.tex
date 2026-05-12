@@ -18,7 +18,7 @@
     width=5.3cm,
     height=4.3cm,
     ytick distance=0.2,
-    xtick={0,10,...,50},
+    xtick={0,20,...,100},
     tick label style={font=\small},
     title style={font=\small},
     xlabel style={font=\small},
@@ -26,7 +26,7 @@
     ytick={0,0.2,...,1},
     ymin=0,
     ymax=1,
-    yticklabels={0\%,20\%,40\%,60\%,80\%,100\%}, % there's probably a better way...
+    %yticklabels={0\%,20\%,40\%,60\%,80\%,100\%}, % there's probably a better way...
     legend cell align={left},
     legend style={
       legend columns=3,
@@ -41,6 +41,7 @@
       thick,
       table/col sep=comma,
       table/x=Epoch,
+      mark=none,
     },
   },
   group/results/.style={

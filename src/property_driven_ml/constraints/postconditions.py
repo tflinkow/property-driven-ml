@@ -2,12 +2,15 @@ import torch
 import torch.nn.functional as F
 import torch.linalg as LA
 
+import itertools
+
 import numpy as np
 
 from abc import ABC, abstractmethod
 from typing import Callable
 
 from ..logics.logic import Logic
+from ..logics.fuzzy_logics import FuzzyLogic
 
 
 class Postcondition(ABC):
@@ -16,7 +19,7 @@ class Postcondition(ABC):
     """
 
     @abstractmethod
-    def get_postcondition(self, *args, **kwargs) -> Callable[[Logic], torch.Tensor]:
+    def build_postcondition(self, *args, **kwargs) -> Callable[[Logic], torch.Tensor]:
         """
         Get the postcondition function for this property.
 
@@ -26,7 +29,6 @@ class Postcondition(ABC):
             x: Original input tensor.
             x_adv: Adversarial input tensor.
             y_target: Target output tensor.
-            device: Optional PyTorch device for tensor computations.
 
         Additional parameters may be specific to the postcondition implementation.
 
@@ -54,12 +56,13 @@ class StandardRobustnessPostcondition(Postcondition):
 
     def __init__(self, device: torch.device, delta: float | torch.Tensor):
         self.device = device
+
         assert 0.0 <= delta <= 1.0, (  # nosec
             "delta is a probability and should be within the range [0, 1]"
         )
         self.delta = torch.as_tensor(delta, device=self.device)
 
-    def get_postcondition(
+    def build_postcondition(
         self,
         N: torch.nn.Module,
         x: torch.Tensor,
@@ -83,6 +86,97 @@ class StandardRobustnessPostcondition(Postcondition):
         return lambda logic: logic.LEQ(
             LA.vector_norm(diff, ord=float("inf"), dim=1), self.delta
         )
+    
+
+class ClassificationRobustnessPostcondition(Postcondition):
+    def __init__(self, device: torch.device):
+        self.device = device
+
+    def build_postcondition(
+        self, 
+        N: torch.nn.Module,
+        x_adv: torch.Tensor,
+        y_target: torch.Tensor
+    ) -> Callable[[Logic], torch.Tensor]:
+        logits = N(x_adv)
+        batch_size = logits.size(0)
+        device = logits.device
+
+        true_logits = logits[torch.arange(batch_size, device=device), y_target]
+
+        def _(logic: Logic) -> torch.Tensor:
+            if isinstance(logic, FuzzyLogic):
+                probs = torch.sigmoid(logits)
+                true_probs = probs[torch.arange(batch_size, device=device), y_target]
+
+                return logic.AND(
+                    *[
+                        logic.GEQ(true_probs, probs[:, j])
+                        for j in range(logits.shape[1])
+                    ]
+                )
+
+            return logic.AND(
+                *[
+                    logic.GEQ(true_logits, logits[:, j])
+                    for j in range(logits.shape[1])
+                ]
+            )
+
+        return _
+
+
+class StrongClassificationRobustnessPostcondition(Postcondition):
+    """
+    Postcondition ensuring model robustness to adversarial perturbations.
+
+    Enforces that the model predicts the true label for the adversarial inputs.
+
+    Args:
+        device: PyTorch device for tensor computations.
+    """
+
+    def __init__(self, device: torch.device, delta: float | torch.Tensor):
+        self.device = device
+        
+        self.delta = torch.as_tensor(delta, device=self.device) # [0, 1]
+        self.delta_logit = torch.log(self.delta / (1.0 - self.delta)).to(self.device) # real
+
+        print(f"delta={self.delta} delta_logit={self.delta_logit}")
+
+    def build_postcondition(
+        self,
+        N: torch.nn.Module,
+        x_adv: torch.Tensor,
+        y_target: torch.Tensor,
+    ) -> Callable[[Logic], torch.Tensor]:
+        """Get robustness postcondition for strong classification robustness.
+
+        Args:
+            N: Neural network model.
+            x_adv: Adversarial input tensor.
+            y_target: Target output tensor.
+
+        Returns:
+            Function that expresses strong classification robustness.
+        """
+        logits = N(x_adv)
+        batch_size = logits.size(0)
+        device = logits.device
+
+        true_logits = logits[torch.arange(batch_size, device=device), y_target]
+
+        # for fuzzy logics, need monotone transform into [0, 1]
+        T = 1.0
+        true_probs = torch.sigmoid(true_logits / T)
+
+        def _(logic: Logic) -> torch.Tensor:
+            if isinstance(logic, FuzzyLogic):
+                return logic.GEQ(true_probs, self.delta)
+            else:
+                return logic.GEQ(true_logits, self.delta_logit)
+            
+        return _
 
 
 class LipschitzRobustnessPostcondition(Postcondition):
@@ -101,7 +195,7 @@ class LipschitzRobustnessPostcondition(Postcondition):
         self.device = device
         self.L = torch.as_tensor(L, device=device)
 
-    def get_postcondition(
+    def build_postcondition(
         self, N: torch.nn.Module, x: torch.Tensor, x_adv: torch.Tensor
     ) -> Callable[[Logic], torch.Tensor]:
         """Get Lipschitz postcondition relating input and output changes.
@@ -123,7 +217,7 @@ class LipschitzRobustnessPostcondition(Postcondition):
         return lambda logic: logic.LEQ(diff_y, self.L * diff_x)
 
 
-class OppositeFacesPostcondition(Postcondition):
+class NotBothPostcondition(Postcondition):
     """
     Postcondition ensuring a physical-world inspired constraint on dice images.
 
@@ -136,10 +230,85 @@ class OppositeFacesPostcondition(Postcondition):
 
     def __init__(self, device: torch.device):
         self.device = device
-        self.delta = torch.tensor(0.0, device=self.device)
-        self.opposingFacePairs = [(0, 5), (1, 4), (2, 3)]
+        self.zero = torch.tensor(0.0, device=self.device)
+        self.half = torch.tensor(0.5, device=self.device)
 
-    def get_postcondition(
+        self.opposite_pairs = [(0, 5), (1, 4), (2, 3)]
+
+        self.all_triples = [tuple(c) for c in itertools.combinations(range(6), 3)]
+        valid_triples = [tuple(sorted(c)) for c in itertools.product(*self.opposite_pairs)]
+
+        self.invalid_triples = [t for t in self.all_triples if t not in valid_triples]
+
+        self.invalid_quadruples = list(itertools.combinations(range(6), 4))
+
+    def build_postcondition(
+        self,
+        N: torch.nn.Module,
+        x_adv: torch.Tensor
+    ) -> Callable[[Logic], torch.Tensor]:
+        """Get postcondition for opposite faces.
+
+        Args:
+            N: Neural network model.
+            x_adv: Adversarial input tensor.
+
+        Returns:
+            Function that ensures network predictions align with real-world knowledge.
+        """
+        logits = N(x_adv)
+
+        # for each pair (i,j), do not predict both
+        def _(logic: Logic) -> torch.Tensor:
+            if isinstance(logic, FuzzyLogic):
+                return logic.AND(
+                    *[
+                        logic.OR(
+                            logic.LEQ(torch.sigmoid(logits[:, i]), self.half),
+                            logic.LEQ(torch.sigmoid(logits[:, j]), self.half),
+                        )
+                        for i, j in self.opposite_pairs
+                    ]
+                )
+            else:
+                return logic.AND(
+                    *[
+                        logic.OR(
+                            logic.LEQ(logits[:, i], self.zero),
+                            logic.LEQ(logits[:, j], self.zero),
+                        )
+                        for i, j in self.opposite_pairs
+                    ]
+                )
+        
+        return _
+
+
+class ExactlyOnePerPairPostcondition(Postcondition):
+    """
+    Postcondition ensuring a physical-world inspired constraint on dice images.
+
+    Enforces that the network may not predict faces at the same time that are
+    on opposite sides of the die (e.g. faces 1 and 6).
+
+    Args:
+        device: PyTorch device for tensor computations.
+    """
+
+    def __init__(self, device: torch.device):
+        self.device = device
+        self.zero = torch.tensor(0.0, device=self.device)
+
+        self.opposite_pairs = [(0, 5), (1, 4), (2, 3)]
+
+        self.all_triples = [tuple(c) for c in itertools.combinations(range(6), 3)]
+        valid_triples = [tuple(sorted(c)) for c in itertools.product(*self.opposite_pairs)]
+
+        self.invalid_triples = [t for t in self.all_triples if t not in valid_triples]
+
+        self.invalid_quadruples = list(itertools.combinations(range(6), 4))
+
+    def build_postcondition(
         self,
         N: torch.nn.Module,
         x_adv: torch.Tensor,
@@ -153,18 +322,98 @@ class OppositeFacesPostcondition(Postcondition):
         Returns:
             Function that ensures network predictions align with real-world knowledge.
         """
+        logits = N(x_adv)
 
-        y_adv = N(x_adv)
+        def _(logic: Logic) -> torch.Tensor:
+            margin = 0.1
+            constraints = []
 
-        return lambda logic: logic.AND(
-            *[
-                logic.OR(
-                    logic.LEQ(y_adv[:, i], self.delta),
-                    logic.LEQ(y_adv[:, j], self.delta),
+            if isinstance(logic, FuzzyLogic):
+                probs = torch.sigmoid(logits)
+
+                low = torch.sigmoid(torch.tensor(-margin, device=logits.device))
+                high = torch.sigmoid(torch.tensor(+margin, device=logits.device))
+
+                for i, j in self.opposite_pairs:
+                    at_least_one = logic.OR(
+                        logic.GEQ(probs[:, i], high),
+                        logic.GEQ(probs[:, j], high),
+                    )
+
+                    at_most_one = logic.OR(
+                        logic.LEQ(probs[:, i], low),
+                        logic.LEQ(probs[:, j], low),
+                    )
+
+                    constraints.append(logic.AND(at_least_one, at_most_one))
+            else:
+                for i, j in self.opposite_pairs:
+                    at_least_one = logic.OR(
+                        logic.GEQ(logits[:, i], +margin),
+                        logic.GEQ(logits[:, j], +margin),
+                    )
+
+                    at_most_one = logic.OR(
+                        logic.LEQ(logits[:, i], -margin),
+                        logic.LEQ(logits[:, j], -margin),
+                    )
+
+                    constraints.append(logic.AND(at_least_one, at_most_one))
+
+            return logic.AND(*constraints)
+
+        return _
+    
+
+class ClothingFootwearPostcondition(Postcondition):
+    def __init__(self, device: torch.device):
+        self.device = device
+        self.clothing = torch.tensor([0, 2, 3, 4, 6], device=device) # t-shirt/top, pullover, dress, coat, shirt
+        self.footwear = torch.tensor([5, 7, 9], device=device) # sandal, sneaker, ankle boot
+        self.margin = 0.0
+
+    def build_postcondition(self, N, x_adv, y_target):
+        logits = N(x_adv)
+        batch_size = logits.size(0)
+        device = logits.device
+
+        true_logits = logits[torch.arange(batch_size, device=device), y_target]
+
+        clothing_mask = torch.isin(y_target, self.clothing)
+        footwear_mask = torch.isin(y_target, self.footwear)
+
+        def _(logic: Logic) -> torch.Tensor:
+            constraints = []
+
+            for j in self.footwear.tolist():
+                # for clothing samples: compare true logit against footwear logit j.
+                # for non-clothing samples: compare true logit against itself.
+                other_logit = torch.where(
+                    clothing_mask,
+                    logits[:, j],
+                    true_logits,
                 )
-                for i, j in self.opposingFacePairs
-            ]
-        )
+
+                constraints.append(
+                    logic.GEQ(true_logits, other_logit + self.margin)
+                )
+
+            for j in self.clothing.tolist():
+                # for footwear samples: compare true logit against clothing logit j.
+                # for non-footwear samples: compare true logit against itself.
+                other_logit = torch.where(
+                    footwear_mask,
+                    logits[:, j],
+                    true_logits,
+                )
+
+                constraints.append(
+                    logic.GEQ(true_logits, other_logit + self.margin)
+                )
+
+            return logic.AND(*constraints)
+
+        return _
 
 
 class AlsomitraOutputPostcondition(Postcondition):
@@ -215,7 +464,7 @@ class AlsomitraOutputPostcondition(Postcondition):
         """
         return y * (self.max - self.min) + self.min
 
-    def get_postcondition(
+    def build_postcondition(
         self,
         N: torch.nn.Module,
         x_adv: torch.Tensor,
@@ -237,21 +486,15 @@ class AlsomitraOutputPostcondition(Postcondition):
         """
         y_adv = N(x_adv).squeeze()
 
-        if torch.isnan(self.lo) and not torch.isnan(
-            self.hi
-        ):  # no lower bound, but upper bound
+        if torch.isnan(self.lo) and not torch.isnan(self.hi): # no lower bound, but upper bound
             return lambda logic: logic.LEQ(y_adv, self.hi)
-        elif not torch.isnan(self.lo) and not torch.isnan(
-            self.hi
-        ):  # both lower and upper bound
+        elif not torch.isnan(self.lo) and not torch.isnan(self.hi): # both lower and upper bound
             return lambda logic: logic.AND(
                 logic.GEQ(y_adv, self.lo), logic.LEQ(y_adv, self.hi)
             )
-        elif not torch.isnan(self.lo) and torch.isnan(
-            self.hi
-        ):  # lower bound, no upper bound
+        elif not torch.isnan(self.lo) and torch.isnan(self.hi): # lower bound, no upper bound
             return lambda logic: logic.GEQ(y_adv, self.lo)
-        else:  # no lower and no upper bound
+        else: # no lower and no upper bound
             raise ValueError(
                 "need to specify either lower or upper (or both) bounds for e_x"
             )
@@ -280,7 +523,7 @@ class GroupPostcondition(Postcondition):
         )
         self.delta = torch.as_tensor(delta, device=self.device)
 
-    def get_postcondition(
+    def build_postcondition(
         self,
         N: torch.nn.Module,
         x_adv: torch.Tensor | None,
