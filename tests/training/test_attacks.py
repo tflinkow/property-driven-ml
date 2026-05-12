@@ -5,7 +5,6 @@ Comprehensive tests for training components including attacks and utilities.
 import pytest
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from property_driven_ml.logics.boolean_logic import BooleanLogic
 from property_driven_ml.logics.fuzzy_logics import GoedelFuzzyLogic

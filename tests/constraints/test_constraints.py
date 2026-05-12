@@ -156,10 +156,10 @@ class TestStandardRobustnessPostcondition:
     def test_postcondition_function_returns_callable(
         self, postcondition, simple_model, sample_inputs
     ):
-        """Test that get_postcondition returns a callable."""
+        """Test that build_postcondition returns a callable."""
         x, x_adv = sample_inputs
 
-        postcond_fn = postcondition.get_postcondition(simple_model, x, x_adv)
+        postcond_fn = postcondition.build_postcondition(simple_model, x, x_adv)
         assert callable(postcond_fn)
 
         # Test that the callable works with a logic
@@ -173,7 +173,7 @@ class TestStandardRobustnessPostcondition:
     ):
         """Test postcondition evaluation with different logic types."""
         x, x_adv = sample_inputs
-        postcond_fn = postcondition.get_postcondition(simple_model, x, x_adv)
+        postcond_fn = postcondition.build_postcondition(simple_model, x, x_adv)
 
         # Test with BooleanLogic
         boolean_logic = BooleanLogic()
