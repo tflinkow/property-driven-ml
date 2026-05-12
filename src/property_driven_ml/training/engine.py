@@ -55,7 +55,6 @@ def train(  # TODO: add task loss function as an argument
         train_loader: Training data loader.
         optimizer: Model optimizer.
         oracle: Attack oracle for generating adversarial examples.
-        grad_norm: Gradient normalization handler.
         logic: Optional logic system for constraint evaluation.
         constraint: Constraint to enforce during training.
         with_dl: Whether to use property-driven learning.
