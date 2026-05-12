@@ -65,6 +65,15 @@ def main():
     parser.add_argument("--batch-size", type=int, required=True)
     parser.add_argument("--lr", type=float, required=True)
     parser.add_argument(
+        "--epsilon", type=float, default=0.3, help="epsilon value for epsilon-ball"
+    )
+    parser.add_argument(
+        "--delta",
+        type=float,
+        default=0.05,
+        help="delta value for probabilistic constraints",
+    )
+    parser.add_argument(
         "--epochs", type=int, required=True, help="number of epochs to train for"
     )
     parser.add_argument(
