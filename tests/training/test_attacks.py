@@ -10,7 +10,6 @@ import torch.nn.functional as F
 from property_driven_ml.logics.boolean_logic import BooleanLogic
 from property_driven_ml.logics.fuzzy_logics import GoedelFuzzyLogic
 from property_driven_ml.training.attacks import Attack, PGD, APGD
-from property_driven_ml.training.grad_norm import GradNorm
 from property_driven_ml.constraints import StandardRobustnessConstraint
 
 
