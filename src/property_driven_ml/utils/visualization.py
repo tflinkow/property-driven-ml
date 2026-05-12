@@ -61,6 +61,6 @@ def save_epoch_images(
 
     if info.adv_img is not None:
         save_img(info.adv_img, f"{epoch}-{prefix}_adv.png")
-    
+
     if info.random_img is not None:
         save_img(info.random_img, f"{epoch}-{prefix}_random.png")

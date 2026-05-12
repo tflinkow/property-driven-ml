@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import codecs
-import os
 import textwrap
 from collections import defaultdict, namedtuple
 from datetime import timedelta
@@ -54,7 +53,7 @@ def parse_log_file(log_file: Path) -> VerificationResult:
 
     def extract(name: str) -> tuple[int, int]:
         match = re.search(rf"{re.escape(name)}:\s*(\d+)/(\d+)", text)
-        
+
         if not match:
             raise ValueError(f"Could not find '{name}' in {log_file}")
         return int(match.group(1)), int(match.group(2))
@@ -71,7 +70,9 @@ def parse_log_file(log_file: Path) -> VerificationResult:
 
 def parse_logic_and_epsilon_from_log(log_file: Path) -> tuple[str, str]:
     stem = log_file.stem
-    stem = re.sub(r"_chunk\d+$", "", stem) # TODO: no longer generation chunks, change dice_to_idx.py and here
+    stem = re.sub(
+        r"_chunk\d+$", "", stem
+    )  # TODO: no longer generation chunks, change dice_to_idx.py and here
 
     parts = stem.split("_")
 
@@ -146,11 +147,14 @@ def compute_time(csv_file: Path) -> float:
 def mean(values: list[float]) -> float:
     return float(pd.Series(values, dtype=float).mean())
 
+
 def bold(s: str) -> str:
     return rf"\textbf{{{s}}}"
 
+
 def maybe_bold(s: str, do_bold: bool) -> str:
     return bold(s) if do_bold else s
+
 
 # the best logic is the best product of PAcc and CSat (for the highest epsilon which is the one we train with)
 def score_logic(
@@ -180,16 +184,15 @@ def write_table_file(report_dir: Path, target_file: str) -> float:
 
     csv_files = sorted(report_dir.glob("*/*.csv"))
 
-    csv_files = [
-        f for f in csv_files
-        if not f.name.endswith("RegressionPlot.csv")
-    ]
+    csv_files = [f for f in csv_files if not f.name.endswith("RegressionPlot.csv")]
 
     if not csv_files:
         return 0.0
 
     results_by_logic: dict[str, list[Result]] = defaultdict(list)
-    verification_by_logic_eps: dict[str, dict[str, list[VerificationResult]]] = defaultdict(lambda: defaultdict(list))
+    verification_by_logic_eps: dict[str, dict[str, list[VerificationResult]]] = (
+        defaultdict(lambda: defaultdict(list))
+    )
     all_eps: set[str] = set()
 
     total_seconds = 0.0
@@ -216,14 +219,18 @@ def write_table_file(report_dir: Path, target_file: str) -> float:
         eps_order = sorted(all_eps, key=eps_value)
         biggest_eps = eps_order[-1] if eps_order else None
 
-        scores = {
-            logic: score_logic(
-                results_by_logic[logic],
-                verification_by_logic_eps.get(logic, {}),
-                biggest_eps,
-            )
-            for logic in results_by_logic
-        } if biggest_eps is not None else {}
+        scores = (
+            {
+                logic: score_logic(
+                    results_by_logic[logic],
+                    verification_by_logic_eps.get(logic, {}),
+                    biggest_eps,
+                )
+                for logic in results_by_logic
+            }
+            if biggest_eps is not None
+            else {}
+        )
 
         best_logic = max(scores, key=scores.get) if scores else None
 

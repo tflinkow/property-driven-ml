@@ -193,8 +193,14 @@ class AlsomitraBase(Precondition):
         Initialize the Alsomitra input region precondition.
         """
         self.device = device
-        self.min = torch.tensor([0.967568, -0.607397, -0.356973, -0.968479, 0.482421, -41.681405], device=self.device)
-        self.max = torch.tensor([3.489893, -0.043021, 0.049180, -0.068003, 41.714717, 4.197234], device=self.device)
+        self.min = torch.tensor(
+            [0.967568, -0.607397, -0.356973, -0.968479, 0.482421, -41.681405],
+            device=self.device,
+        )
+        self.max = torch.tensor(
+            [3.489893, -0.043021, 0.049180, -0.068003, 41.714717, 4.197234],
+            device=self.device,
+        )
         # Define indices for each feature for clarity
         self.v_x = 0
         self.v_y = 1
@@ -204,7 +210,9 @@ class AlsomitraBase(Precondition):
         self.y = 5
 
     # replace unbounded (nan) bounds with Alsomitra domain-specific min / max values
-    def apply_domain_bounds(self, lo: torch.Tensor, hi: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def apply_domain_bounds(
+        self, lo: torch.Tensor, hi: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         # replace unbounded dimensions with domain min and max
         lo = torch.where(torch.isnan(lo), self.min, lo)
         hi = torch.where(torch.isnan(hi), self.max, hi)

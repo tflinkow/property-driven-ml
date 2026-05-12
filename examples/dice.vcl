@@ -33,26 +33,26 @@ denormalise x =
 
 -- pixel values between 0 and 1
 validImage : UnnormalisedImage -> Bool
-validImage x = 
+validImage x =
   forall c h w . 0 <= x ! c ! h ! w <= 1
 
 @network
 classifier : NormalisedImage -> Tensor Real [6]
 
 logit : UnnormalisedImage -> Index 6 -> Real
-logit x i = 
+logit x i =
   ( classifier (normalise x) ) ! i
 
 -- a label i is predicted if its logit y_i > 0
 predicts : UnnormalisedImage -> Index 6 -> Bool
-predicts x i = 
+predicts x i =
   logit x i > 0
 
 @parameter
 epsilon : Real
 
 boundedByEpsilon : UnnormalisedImage -> Bool
-boundedByEpsilon x = 
+boundedByEpsilon x =
   forall i j k . -epsilon <= x ! i ! j ! k <= epsilon
 
 @parameter(infer=True)

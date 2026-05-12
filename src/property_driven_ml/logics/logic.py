@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from functools import reduce
 
 
-# TODO: possibly not very clean, but we expect deriving classes to override 
+# TODO: possibly not very clean, but we expect deriving classes to override
 # either EQ or NEQ, LEQ or GEQ, LT or GT, (whatever suits them) but don't really enforce it
 # (could lead to infinite recursion during development)
 class Logic(ABC):

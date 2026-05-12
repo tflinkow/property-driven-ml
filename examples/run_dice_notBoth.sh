@@ -45,7 +45,7 @@ eps_value() {
 
 train_model() {
     local logic="$1"
-    
+
     if [[ "${logic}" == "Baseline" ]]; then
         # eps =  4/255 = 0.0156862745
         python ../main.py \

@@ -86,17 +86,14 @@ class StandardRobustnessPostcondition(Postcondition):
         return lambda logic: logic.LEQ(
             LA.vector_norm(diff, ord=float("inf"), dim=1), self.delta
         )
-    
+
 
 class ClassificationRobustnessPostcondition(Postcondition):
     def __init__(self, device: torch.device):
         self.device = device
 
     def build_postcondition(
-        self, 
-        N: torch.nn.Module,
-        x_adv: torch.Tensor,
-        y_target: torch.Tensor
+        self, N: torch.nn.Module, x_adv: torch.Tensor, y_target: torch.Tensor
     ) -> Callable[[Logic], torch.Tensor]:
         logits = N(x_adv)
         batch_size = logits.size(0)
@@ -117,10 +114,7 @@ class ClassificationRobustnessPostcondition(Postcondition):
                 )
 
             return logic.AND(
-                *[
-                    logic.GEQ(true_logits, logits[:, j])
-                    for j in range(logits.shape[1])
-                ]
+                *[logic.GEQ(true_logits, logits[:, j]) for j in range(logits.shape[1])]
             )
 
         return _
@@ -138,9 +132,11 @@ class StrongClassificationRobustnessPostcondition(Postcondition):
 
     def __init__(self, device: torch.device, delta: float | torch.Tensor):
         self.device = device
-        
-        self.delta = torch.as_tensor(delta, device=self.device) # [0, 1]
-        self.delta_logit = torch.log(self.delta / (1.0 - self.delta)).to(self.device) # real
+
+        self.delta = torch.as_tensor(delta, device=self.device)  # [0, 1]
+        self.delta_logit = torch.log(self.delta / (1.0 - self.delta)).to(
+            self.device
+        )  # real
 
         print(f"delta={self.delta} delta_logit={self.delta_logit}")
 
@@ -175,7 +171,7 @@ class StrongClassificationRobustnessPostcondition(Postcondition):
                 return logic.GEQ(true_probs, self.delta)
             else:
                 return logic.GEQ(true_logits, self.delta_logit)
-            
+
         return _
 
 
@@ -236,16 +232,16 @@ class NotBothPostcondition(Postcondition):
         self.opposite_pairs = [(0, 5), (1, 4), (2, 3)]
 
         self.all_triples = [tuple(c) for c in itertools.combinations(range(6), 3)]
-        valid_triples = [tuple(sorted(c)) for c in itertools.product(*self.opposite_pairs)]
+        valid_triples = [
+            tuple(sorted(c)) for c in itertools.product(*self.opposite_pairs)
+        ]
 
         self.invalid_triples = [t for t in self.all_triples if t not in valid_triples]
 
         self.invalid_quadruples = list(itertools.combinations(range(6), 4))
 
     def build_postcondition(
-        self,
-        N: torch.nn.Module,
-        x_adv: torch.Tensor
+        self, N: torch.nn.Module, x_adv: torch.Tensor
     ) -> Callable[[Logic], torch.Tensor]:
         """Get postcondition for opposite faces.
 
@@ -280,7 +276,7 @@ class NotBothPostcondition(Postcondition):
                         for i, j in self.opposite_pairs
                     ]
                 )
-        
+
         return _
 
 
@@ -302,7 +298,9 @@ class ExactlyOnePerPairPostcondition(Postcondition):
         self.opposite_pairs = [(0, 5), (1, 4), (2, 3)]
 
         self.all_triples = [tuple(c) for c in itertools.combinations(range(6), 3)]
-        valid_triples = [tuple(sorted(c)) for c in itertools.product(*self.opposite_pairs)]
+        valid_triples = [
+            tuple(sorted(c)) for c in itertools.product(*self.opposite_pairs)
+        ]
 
         self.invalid_triples = [t for t in self.all_triples if t not in valid_triples]
 
@@ -363,13 +361,17 @@ class ExactlyOnePerPairPostcondition(Postcondition):
             return logic.AND(*constraints)
 
         return _
-    
+
 
 class ClothingFootwearPostcondition(Postcondition):
     def __init__(self, device: torch.device):
         self.device = device
-        self.clothing = torch.tensor([0, 2, 3, 4, 6], device=device) # t-shirt/top, pullover, dress, coat, shirt
-        self.footwear = torch.tensor([5, 7, 9], device=device) # sandal, sneaker, ankle boot
+        self.clothing = torch.tensor(
+            [0, 2, 3, 4, 6], device=device
+        )  # t-shirt/top, pullover, dress, coat, shirt
+        self.footwear = torch.tensor(
+            [5, 7, 9], device=device
+        )  # sandal, sneaker, ankle boot
         self.margin = 0.0
 
     def build_postcondition(self, N, x_adv, y_target):
@@ -394,9 +396,7 @@ class ClothingFootwearPostcondition(Postcondition):
                     true_logits,
                 )
 
-                constraints.append(
-                    logic.GEQ(true_logits, other_logit + self.margin)
-                )
+                constraints.append(logic.GEQ(true_logits, other_logit + self.margin))
 
             for j in self.clothing.tolist():
                 # for footwear samples: compare true logit against clothing logit j.
@@ -407,9 +407,7 @@ class ClothingFootwearPostcondition(Postcondition):
                     true_logits,
                 )
 
-                constraints.append(
-                    logic.GEQ(true_logits, other_logit + self.margin)
-                )
+                constraints.append(logic.GEQ(true_logits, other_logit + self.margin))
 
             return logic.AND(*constraints)
 
@@ -486,15 +484,21 @@ class AlsomitraOutputPostcondition(Postcondition):
         """
         y_adv = N(x_adv).squeeze()
 
-        if torch.isnan(self.lo) and not torch.isnan(self.hi): # no lower bound, but upper bound
+        if torch.isnan(self.lo) and not torch.isnan(
+            self.hi
+        ):  # no lower bound, but upper bound
             return lambda logic: logic.LEQ(y_adv, self.hi)
-        elif not torch.isnan(self.lo) and not torch.isnan(self.hi): # both lower and upper bound
+        elif not torch.isnan(self.lo) and not torch.isnan(
+            self.hi
+        ):  # both lower and upper bound
             return lambda logic: logic.AND(
                 logic.GEQ(y_adv, self.lo), logic.LEQ(y_adv, self.hi)
             )
-        elif not torch.isnan(self.lo) and torch.isnan(self.hi): # lower bound, no upper bound
+        elif not torch.isnan(self.lo) and torch.isnan(
+            self.hi
+        ):  # lower bound, no upper bound
             return lambda logic: logic.GEQ(y_adv, self.lo)
-        else: # no lower and no upper bound
+        else:  # no lower and no upper bound
             raise ValueError(
                 "need to specify either lower or upper (or both) bounds for e_x"
             )

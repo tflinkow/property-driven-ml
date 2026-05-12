@@ -28,7 +28,7 @@ class STL(Logic):
             Negated tensor -x.
         """
         return -x
-    
+
     def EQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return -torch.abs(x - y)
 
@@ -43,15 +43,15 @@ class STL(Logic):
             Real-valued difference y - x (positive when x <= y).
         """
         return y - x
-    
+
     def LT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return self.AND(self.LEQ(x, y), self.NEQ(x, y))
-    
+
     def AND(self, *xs) -> torch.Tensor:
         xs = torch.stack(xs, dim=0)
         x_min = torch.min(xs, dim=0, keepdim=True).values
 
-        eps = 1e-12 # TODO: make param!
+        eps = 1e-12  # TODO: make param!
         near_zero = torch.abs(x_min) <= eps
 
         # sign-preserving safe denom
@@ -64,7 +64,7 @@ class STL(Logic):
 
         # case 1: x_min < 0
         w_neg = torch.softmax(self.k * t, dim=0)
-        exp_t = torch.exp(torch.clamp(t, max=0.0)) # avoid explosion
+        exp_t = torch.exp(torch.clamp(t, max=0.0))  # avoid explosion
         out_neg = x_min * torch.sum(exp_t * w_neg, dim=0, keepdim=True)
 
         # case 2: x_min > 0
@@ -72,7 +72,7 @@ class STL(Logic):
         out_pos = torch.sum(xs * w_pos, dim=0, keepdim=True)
 
         neg = x_min < -eps
-        pos = x_min >  eps
+        pos = x_min > eps
 
         out = x_min * 0.0
         out = torch.where(neg, out_neg, out)

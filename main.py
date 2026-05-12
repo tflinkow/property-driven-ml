@@ -33,6 +33,7 @@ from property_driven_ml.training import EpochInfoTrain, train, test
 
 # torch.autograd.set_detect_anomaly(True)
 
+
 def main():
     """Main training script for property-driven machine learning."""
     logics_list: list[logics.Logic] = [
@@ -57,7 +58,7 @@ def main():
         logics.QLL(50),
         logics.QLL(100),
         logics.LeakyLogic(),
-        logics.RealProductLogic()
+        logics.RealProductLogic(),
     ]
 
     parser = argparse.ArgumentParser()
@@ -76,7 +77,18 @@ def main():
         "--constraint",
         type=str,
         default="StandardRobustness",
-        choices=["StandardRobustness", "StrongClassificationRobustness", "ClassificationRobustness", "NotBoth", "ClothingFootwear", "ExactlyOnePerPair", "AlsomitraProperty1", "AlsomitraProperty2", "AlsomitraProperty3", "AlsomitraProperty4"],  # Will add more later
+        choices=[
+            "StandardRobustness",
+            "StrongClassificationRobustness",
+            "ClassificationRobustness",
+            "NotBoth",
+            "ClothingFootwear",
+            "ExactlyOnePerPair",
+            "AlsomitraProperty1",
+            "AlsomitraProperty2",
+            "AlsomitraProperty3",
+            "AlsomitraProperty4",
+        ],  # Will add more later
         help="which constraint to use",
     )
     parser.add_argument(
@@ -137,21 +149,9 @@ def main():
         "--seed",
         type=int,
     )
-    parser.add_argument(
-        "--epsilon",
-        type=float,
-        default=None
-    )
-    parser.add_argument(
-        "--delta",
-        type=float,
-        default=None
-    )
-    parser.add_argument(
-        "--alpha",
-        type=float,
-        default=0.5
-    )
+    parser.add_argument("--epsilon", type=float, default=None)
+    parser.add_argument("--delta", type=float, default=None)
+    parser.add_argument("--alpha", type=float, default=0.5)
     args = parser.parse_args()
 
     kwargs = {"batch_size": args.batch_size}
@@ -253,23 +253,17 @@ def main():
             std=std,  # epsilon is specified in terms of [0, 1] for MNIST but mean / std normalisation changes their domain
         )
     elif constraint_class == AlsomitraProperty1Constraint:
-        constraint: constraints.Constraint = AlsomitraProperty1Constraint(
-            device=device
-        )
+        constraint: constraints.Constraint = AlsomitraProperty1Constraint(device=device)
     elif constraint_class == AlsomitraProperty2Constraint:
-        constraint: constraints.Constraint = AlsomitraProperty2Constraint(
-            device=device
-        )
+        constraint: constraints.Constraint = AlsomitraProperty2Constraint(device=device)
     elif constraint_class == AlsomitraProperty3Constraint:
-        constraint: constraints.Constraint = AlsomitraProperty3Constraint(
-            device=device
-        )
+        constraint: constraints.Constraint = AlsomitraProperty3Constraint(device=device)
     else:
         raise NotImplementedError(f"Unhandled constraint type: {constraint_class}")
 
     ### Set up PGD, ADAM ###
     train_steps = args.oracle_steps
-    train_restarts = args.oracle_restarts # // 2
+    train_restarts = args.oracle_restarts  # // 2
 
     test_steps = args.oracle_steps
     test_restarts = args.oracle_restarts
@@ -303,7 +297,6 @@ def main():
 
     ### Set up folders for results and PGD images ###
 
-    
     if isinstance(constraint, constraints.StandardRobustnessConstraint):
         folder = "standard-robustness"
     elif isinstance(constraint, constraints.StrongClassificationRobustnessConstraint):
@@ -350,7 +343,7 @@ def main():
                 "Train-C-Grad",
                 "Train-C-Weight",
                 "Train-Weighted-C-Grad",
-                "Train-Grad-Ratio", 
+                "Train-Grad-Ratio",
                 "Train-P-Metric",
                 "Train-C-Acc",
                 "Train-C-Sec",
@@ -372,7 +365,7 @@ def main():
 
             if epoch > 0:
                 with_dl = (epoch > args.delay) and (not is_baseline)
-                
+
                 train_info = train(
                     epoch,
                     N,
@@ -384,8 +377,8 @@ def main():
                     constraint,
                     with_dl,
                     mode,
-                    args.alpha
-                )                
+                    args.alpha,
+                )
                 train_time = time.time() - start
 
                 if args.save_imgs:
@@ -433,15 +426,23 @@ def main():
                 [
                     epoch,
                     train_info.pred_loss,
-                    -1, # random loss, we don't evaluate that during training for performance
+                    -1,  # random loss, we don't evaluate that during training for performance
                     train_info.constr_loss,
-                    train_info.pred_grad_norm if train_info.pred_grad_norm is not None else -1,
-                    train_info.constr_grad_norm if train_info.constr_grad_norm is not None else -1,
-                    train_info.constr_loss_weight if train_info.constr_loss_weight is not None else -1,
-                    train_info.weighted_constr_grad_norm if train_info.weighted_constr_grad_norm is not None else -1,
+                    train_info.pred_grad_norm
+                    if train_info.pred_grad_norm is not None
+                    else -1,
+                    train_info.constr_grad_norm
+                    if train_info.constr_grad_norm is not None
+                    else -1,
+                    train_info.constr_loss_weight
+                    if train_info.constr_loss_weight is not None
+                    else -1,
+                    train_info.weighted_constr_grad_norm
+                    if train_info.weighted_constr_grad_norm is not None
+                    else -1,
                     train_info.grad_ratio if train_info.grad_ratio is not None else -1,
                     train_info.pred_metric,
-                    -1, # c acc, we don't evaluate that during training for performance
+                    -1,  # c acc, we don't evaluate that during training for performance
                     train_info.constr_sec,
                     test_info.pred_loss,
                     test_info.random_loss,

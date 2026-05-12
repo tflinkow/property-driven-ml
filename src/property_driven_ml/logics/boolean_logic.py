@@ -47,7 +47,7 @@ class BooleanLogic(Logic):
             Boolean tensor with True where x <= y.
         """
         return x <= y
-    
+
     def LT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Boolean less than comparison.
 
@@ -59,7 +59,7 @@ class BooleanLogic(Logic):
             Boolean tensor with True where x < y.
         """
         return x < y
-    
+
     def AND(self, *xs: torch.Tensor) -> torch.Tensor:
         """Boolean logical conjunction of multiple tensors.
 

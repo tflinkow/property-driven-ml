@@ -109,7 +109,7 @@ def train(  # TODO: add task loss function as an argument
             if isinstance(constraint, constraints.AlsomitraOutputPostcondition):
                 scale = 0.012
             else:
-                scale = 1.
+                scale = 1.0
 
             # loss calculation for regression
             loss = F.mse_loss(y, y_target)
@@ -159,12 +159,14 @@ def train(  # TODO: add task loss function as an argument
         else:
             loss_pred = loss
 
-            if isinstance(constraint, constraints.StrongClassificationRobustnessConstraint):
+            if isinstance(
+                constraint, constraints.StrongClassificationRobustnessConstraint
+            ):
                 loss_logic_train = torch.mean(torch.relu(loss_adv))
             else:
                 loss_logic_train = torch.mean(loss_adv)
 
-            params = list(N.fc2.parameters()) # TODO! depends on model!!!
+            params = list(N.fc2.parameters())  # TODO! depends on model!!!
 
             g_pred = gradnorm(loss_pred, params)
             g_logic = gradnorm(loss_logic_train, params)
@@ -176,8 +178,10 @@ def train(  # TODO: add task loss function as an argument
             avg_g_pred += g_pred.detach()
             avg_g_logic += g_logic.detach()
             avg_w_logic += w_logic.detach()
-            avg_g_logic_eff += (w_logic.detach() * g_logic.detach())
-            avg_grad_ratio += ((w_logic.detach() * g_logic.detach()) / (g_pred.detach() + 1e-8))
+            avg_g_logic_eff += w_logic.detach() * g_logic.detach()
+            avg_grad_ratio += (w_logic.detach() * g_logic.detach()) / (
+                g_pred.detach() + 1e-8
+            )
 
             total_loss.backward()
             optimizer.step()
@@ -186,7 +190,7 @@ def train(  # TODO: add task loss function as an argument
 
         # save one original image and adversarial sample image (for debugging, inspecting attacks)
         i = np.random.randint(0, x.size(0))
-        
+
         images = dict()
         images["input"], images["adv"] = x[i], adv[i] if with_dl else None
 
@@ -199,8 +203,12 @@ def train(  # TODO: add task loss function as an argument
         constr_loss=(avg_constr_loss.item() / len(train_loader)) if with_dl else None,
         pred_grad_norm=(avg_g_pred.item() / len(train_loader)) if with_dl else None,
         constr_grad_norm=(avg_g_logic.item() / len(train_loader)) if with_dl else None,
-        constr_loss_weight=(avg_w_logic.item() / len(train_loader)) if with_dl else None,
-        weighted_constr_grad_norm=(avg_g_logic_eff.item() / len(train_loader)) if with_dl else None,
+        constr_loss_weight=(avg_w_logic.item() / len(train_loader))
+        if with_dl
+        else None,
+        weighted_constr_grad_norm=(avg_g_logic_eff.item() / len(train_loader))
+        if with_dl
+        else None,
         grad_ratio=(avg_grad_ratio.item() / len(train_loader)) if with_dl else None,
         input_img=images["input"],
         adv_img=images["adv"],
@@ -284,7 +292,7 @@ def test(
         # using the logic under test
         if not is_baseline:
             adv_self = oracle_self.attack(N, x, y_target, constraint)
-        
+
         # using a common / reference logic
         adv_common = oracle_common.attack(N, x, y_target, constraint)
 
@@ -318,7 +326,11 @@ def test(
         # Generate random sample from constraint for visualization
         random_sample = constraint.uniform_sample(x[i : i + 1], 1).squeeze(0)
         images = dict()
-        images["input"], images["random"], images["adv"] = x[i], random_sample, adv_common[i]
+        images["input"], images["random"], images["adv"] = (
+            x[i],
+            random_sample,
+            adv_common[i],
+        )
 
     if mode in (Mode.MultiClassClassification, Mode.MultiLabelClassification):
         pred_acc = correct.item() / total_samples
@@ -327,7 +339,7 @@ def test(
         if isinstance(constraint, constraints.AlsomitraOutputPostcondition):
             scale = 0.012
         else:
-            scale = 1.
+            scale = 1.0
 
         rmse = torch.sqrt(avg_pred_loss / total_samples)
         rmse = (scale * rmse.cpu()).item()
@@ -340,7 +352,11 @@ def test(
         pred_loss = avg_pred_loss.item() / total_samples
 
     return EpochInfoTest(
-        pred_metric=(pred_acc if mode in (Mode.MultiClassClassification, Mode.MultiLabelClassification) else rmse),
+        pred_metric=(
+            pred_acc
+            if mode in (Mode.MultiClassClassification, Mode.MultiLabelClassification)
+            else rmse
+        ),
         pred_loss=pred_loss,
         constr_acc=constr_acc.item() / total_samples,
         random_loss=avg_random_loss.item() / total_samples,

@@ -38,5 +38,5 @@ __all__ = [
     "DL2",
     "QLL",
     "LeakyLogic",
-    "RealProductLogic"
+    "RealProductLogic",
 ]

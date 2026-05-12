@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-    
+
 
 class MnistNetSmall(nn.Module):
     def __init__(self):
@@ -19,7 +19,7 @@ class MnistNetSmall(nn.Module):
         x = self.fc2(x)
         return x
 
-    
+
 class DiceNet(nn.Module):
     def __init__(self):
         super().__init__()
@@ -35,7 +35,7 @@ class DiceNet(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
-    
+
 
 class AlsomitraNet(nn.Module):
     def __init__(self):

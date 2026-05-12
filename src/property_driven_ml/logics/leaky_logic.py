@@ -41,7 +41,7 @@ class LeakyLogic(Logic):
     def LT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         delta = 1e-3
         return self.LEQ(x + delta, y)
-    
+
     def p_sum(self, *xs: torch.Tensor, p: float) -> torch.Tensor:
         x = torch.stack(xs, dim=0)
 

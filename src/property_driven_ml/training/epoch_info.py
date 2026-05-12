@@ -15,12 +15,13 @@ from abc import ABC, abstractmethod
 @dataclass(slots=True)
 class EpochInfo(ABC):
     """Base class for epoch information."""
+
     pred_metric: float
     pred_loss: float
 
     constr_acc: Optional[float] = None
     random_loss: Optional[float] = None
-    
+
     input_img: Optional[torch.Tensor] = None
     random_img: Optional[torch.Tensor] = None
     adv_img: Optional[torch.Tensor] = None

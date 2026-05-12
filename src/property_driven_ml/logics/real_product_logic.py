@@ -2,7 +2,7 @@ import torch
 
 from .logic import Logic
 
-    
+
 class RealProductLogic(Logic):
     def __init__(self, name="RealProduct"):
         super().__init__(name)
@@ -16,9 +16,7 @@ class RealProductLogic(Logic):
         # t_i = exp(-z_i)
         ts = torch.exp(-zs)
 
-        return -torch.log(
-            1.0 - torch.prod(1.0 - ts, dim=0)
-        )
+        return -torch.log(1.0 - torch.prod(1.0 - ts, dim=0))
 
     def NOT(self, x: torch.Tensor) -> torch.Tensor:
         return -torch.log(1.0 - torch.exp(-x))

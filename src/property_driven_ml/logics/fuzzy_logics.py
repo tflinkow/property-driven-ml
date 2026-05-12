@@ -53,7 +53,7 @@ class FuzzyLogic(Logic):
             Maps x <= y into [0, 1] for real-valued x, y. TODO! this is now incorrect!
         """
         return torch.clamp(1.0 - torch.clamp(safe_div(x - y, x + y), min=0.0), min=0.0)
-    
+
     def GT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return self.NOT(self.LEQ(x, y))
 
@@ -100,11 +100,11 @@ class GoedelFuzzyLogic(FuzzyLogic):
             1.0 where x < y, otherwise y.
         """
         return torch.where(x < y, 1.0, y)
-    
+
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.where(
             x <= y,
-            1.0 + 0.0 * x, # torch.ones_like(x),
+            1.0 + 0.0 * x,  # torch.ones_like(x),
             y,
         )
 
@@ -130,15 +130,17 @@ class LukasiewiczFuzzyLogic(FuzzyLogicWithSNImplication, FuzzyLogic):
 
     def __init__(self):
         super().__init__(name="LK")
-    
+
     def AND(self, *xs: torch.Tensor) -> torch.Tensor:
         """n-ary Łukasiewicz conjunction using the Łukasiewicz t-norm max(0, x + y - 1)."""
-        return torch.clamp(torch.sum(torch.stack(xs, dim=0), dim=0) - len(xs) + 1, min=0.0)
-    
+        return torch.clamp(
+            torch.sum(torch.stack(xs, dim=0), dim=0) - len(xs) + 1, min=0.0
+        )
+
     def OR(self, *xs: torch.Tensor) -> torch.Tensor:
         """Łukasiewicz disjunction using the Łukasiewicz t-conorm min(1, x + y)."""
         return torch.clamp(torch.sum(torch.stack(xs), dim=0), max=1.0)
-    
+
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.clamp(1.0 - x + y, max=1.0)
 
@@ -163,11 +165,11 @@ class ReichenbachFuzzyLogic(FuzzyLogicWithSNImplication, FuzzyLogic):
     def OR(self, *xs: torch.Tensor) -> torch.Tensor:
         """n-ary Reichenbach disjunction using probabilistic sum x + y - x * y (i.e. 1 - (1 - x) (1 - y))."""
         return 1.0 - torch.prod(1.0 - torch.stack(xs, dim=0), dim=0)
-    
+
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.where(
             x <= y,
-            1.0 + 0.0 * x, # torch.ones_like(x),
+            1.0 + 0.0 * x,  # torch.ones_like(x),
             safe_div(y, x),
         )
 
@@ -250,7 +252,7 @@ class YagerFuzzyLogic(FuzzyLogic):
     def __init__(self, p=5):
         super().__init__(name="YG")
         self.p = p
-    
+
     def AND(self, *xs: torch.Tensor) -> torch.Tensor:
         """n-ary Yager t-norm."""
         eps = 1e-6
@@ -265,28 +267,27 @@ class YagerFuzzyLogic(FuzzyLogic):
             min=0.0,
             max=1.0,
         )
-    
+
     def OR(self, *xs: torch.Tensor) -> torch.Tensor:
         """n-ary Yager t-conorm."""
         return torch.clamp(
             torch.pow(
                 torch.sum(torch.pow(torch.stack(xs, dim=0), self.p), dim=0),
-                1.0 / self.p
+                1.0 / self.p,
             ),
-            max=1.0
+            max=1.0,
         )
 
     def IMPL(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.where(
             torch.logical_and(x == 0.0, y == 0.0), torch.ones_like(x), safe_pow(y, x)
         )
-    
+
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         eps = 1e-6
 
-        diff = (
-            torch.pow(torch.clamp(1.0 - y, min=0.0), self.p)
-            - torch.pow(torch.clamp(1.0 - x, min=0.0), self.p)
+        diff = torch.pow(torch.clamp(1.0 - y, min=0.0), self.p) - torch.pow(
+            torch.clamp(1.0 - x, min=0.0), self.p
         )
 
         violation = 1.0 - torch.pow(

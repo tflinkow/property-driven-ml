@@ -16,7 +16,7 @@ all_images = all_images / 255.0
 all_labels = idx2numpy.convert_from_file("data/MNIST/raw/t10k-labels-idx1-ubyte")
 
 # choose arg.size random images
-assert len(all_images) == len(all_labels)
+assert len(all_images) == len(all_labels)  # nosec
 idx = np.random.choice(len(all_images), size=SIZE, replace=False)
 
 print(f"indices={idx}")

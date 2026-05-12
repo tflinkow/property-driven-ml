@@ -80,17 +80,19 @@ class GradNorm:
         weighted_tasks = self.weights * tasks
 
         # compute per-task gradient norms G_i = ||grad_W (w_i L_i)||_2
-        G = torch.stack([
-            self._grad_norm(weighted_tasks[0]),
-            self._grad_norm(weighted_tasks[1]),
-        ])
+        G = torch.stack(
+            [
+                self._grad_norm(weighted_tasks[0]),
+                self._grad_norm(weighted_tasks[1]),
+            ]
+        )
 
         # relative inverse training rates
         loss_ratio = tasks.detach() / self.initial_loss
         inv_rate = loss_ratio / loss_ratio.mean()
 
         # target is treated as constant w.r.t. weights
-        target = G.detach().mean() * (inv_rate ** self.alpha)
+        target = G.detach().mean() * (inv_rate**self.alpha)
 
         gradnorm_loss = torch.abs(G - target).sum()
 

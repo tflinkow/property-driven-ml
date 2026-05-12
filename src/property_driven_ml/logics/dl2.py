@@ -37,16 +37,16 @@ class DL2(Logic):
     def NEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         xi = torch.tensor(1.0, device=x.device, dtype=x.dtype)
         return xi * (x == y).float()
-    
+
     def EQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return self.AND(self.LEQ(x, y), self.GEQ(x, y))
 
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.clamp(x - y, min=0.0)
-    
+
     def LT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return self.AND(self.LEQ(x, y), self.NEQ(x, y))
-    
+
     def AND(self, *xs: torch.Tensor) -> torch.Tensor:
         return torch.sum(torch.stack(xs, dim=0), dim=0)
 

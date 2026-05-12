@@ -16,14 +16,16 @@ all_images = all_images / 255.0
 all_labels = idx2numpy.convert_from_file("data/FashionMNIST/raw/t10k-labels-idx1-ubyte")
 
 # choose arg.size random images
-assert len(all_images) == len(all_labels)
+assert len(all_images) == len(all_labels)  # nosec
 idx = np.random.choice(len(all_images), size=SIZE, replace=False)
 
 print(f"indices={idx}")
 
 # save images and labels
 idx2numpy.convert_to_file(f"fashion-images-{SIZE}.idx", all_images[idx])
-idx2numpy.convert_to_file(f"fashion-labels-{SIZE}.idx", all_labels[idx].astype(np.uint8))
+idx2numpy.convert_to_file(
+    f"fashion-labels-{SIZE}.idx", all_labels[idx].astype(np.uint8)
+)
 
 # check if saving worked:
 images = idx2numpy.convert_from_file(f"fashion-images-{SIZE}.idx")

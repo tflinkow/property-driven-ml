@@ -22,8 +22,12 @@ class AlsomitraDataset(torch.utils.data.Dataset):
         self,
         data_all: pd.DataFrame,
         indices: np.ndarray,
-        in_stats: Tuple[pd.Series, pd.Series],  # (centre, scale) to min-max normalise inputs to [0, 1]
-        out_stats: Tuple[float, float] # (y_min, y_max) to min-max normalise outputs to [0, 1]
+        in_stats: Tuple[
+            pd.Series, pd.Series
+        ],  # (centre, scale) to min-max normalise inputs to [0, 1]
+        out_stats: Tuple[
+            float, float
+        ],  # (y_min, y_max) to min-max normalise outputs to [0, 1]
     ):
         data = data_all.iloc[indices].reset_index(drop=True).copy()
 
@@ -41,14 +45,22 @@ class AlsomitraDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         # y as [1] to match (N,1) predictors
-        return torch.from_numpy(self.X[idx]), torch.tensor([self.y[idx]], dtype=torch.float32)
+        return torch.from_numpy(self.X[idx]), torch.tensor(
+            [self.y[idx]], dtype=torch.float32
+        )
 
 
 def create_alsomitra_datasets(
     batch_size: int,
     train_split: float = 0.8,
     seed: int = 42,
-) -> tuple[DataLoader, DataLoader, torch.nn.Module, tuple[tuple[float, ...], tuple[float, ...]], Mode]:
+) -> tuple[
+    DataLoader,
+    DataLoader,
+    torch.nn.Module,
+    tuple[tuple[float, ...], tuple[float, ...]],
+    Mode,
+]:
     """
     Create Alsomitra train and test data loaders.
 
@@ -69,15 +81,19 @@ def create_alsomitra_datasets(
     train_inputs = data_all.iloc[train_idx, :-2]
     min = train_inputs.min(axis=0)
     max = train_inputs.max(axis=0)
-    scale = (max - min)
+    scale = max - min
 
     # compute min/max on train outputs only
     train_outputs = data_all.iloc[train_idx, -1]
     y_min = train_outputs.min()
     y_max = train_outputs.max()
 
-    dataset_train = AlsomitraDataset(data_all, train_idx, in_stats=(min, scale), out_stats=(y_min, y_max))
-    dataset_test = AlsomitraDataset(data_all, test_idx, in_stats=(min, scale), out_stats=(y_min, y_max))
+    dataset_train = AlsomitraDataset(
+        data_all, train_idx, in_stats=(min, scale), out_stats=(y_min, y_max)
+    )
+    dataset_test = AlsomitraDataset(
+        data_all, test_idx, in_stats=(min, scale), out_stats=(y_min, y_max)
+    )
 
     train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)

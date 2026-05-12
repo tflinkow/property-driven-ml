@@ -21,7 +21,7 @@ from .preconditions import (
     AlsomitraProperty2,
     AlsomitraProperty3,
 )
-from property_driven_ml.logics import Logic, FuzzyLogic, STL, BooleanLogic, QLL
+from property_driven_ml.logics import Logic, FuzzyLogic, STL, BooleanLogic
 
 from abc import ABC, abstractmethod
 
@@ -83,7 +83,7 @@ class Constraint(ABC):
         lo, hi = self.precondition.get_bounds(x, *args, **kwargs)
 
         # TODO: remove code from Alsomitra Input Region base classes; automatically obtain min and max based on train_loader
-        
+
         if lo.isnan().any() or hi.isnan().any():
             if self.min is not None and self.max is not None:
                 lo = torch.max(lo, self.min.to(self.device))
@@ -181,7 +181,7 @@ class Constraint(ABC):
             if is_attack:
                 loss = -loss
             else:
-                loss=-loss
+                loss = -loss
 
         if skip_sat:
             # When skipping sat calculation, return a dummy tensor with same shape as loss
@@ -314,7 +314,7 @@ class ExactlyOnePerPairConstraint(Constraint):
     def __init__(
         self,
         device: torch.device,
-        epsilon: float = 24/255,
+        epsilon: float = 24 / 255,
         std: Tuple[float, ...] | float | None = None,
     ):
         """Initialize VisibleHigherConstraint.
@@ -340,7 +340,7 @@ class NotBothConstraint(Constraint):
     def __init__(
         self,
         device: torch.device,
-        epsilon: float = 24/255,
+        epsilon: float = 24 / 255,
         std: Tuple[float, ...] | float | None = None,
     ):
         """Initialize VisibleHigherConstraint.
