@@ -273,7 +273,7 @@ You can also cite the software implementation:
 ```bibtex
 @software{property_driven_ml,
   title={Property-Driven Machine Learning Framework},
-  author={Thomas Flinkow},
+  author={Flinkow, Thomas and Grinbergs, Gusts Gustavs},
   year={2025},
   url={https://github.com/tflinkow/property-driven-ml}
 }

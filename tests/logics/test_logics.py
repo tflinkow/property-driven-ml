@@ -117,13 +117,6 @@ class TestBooleanLogic:
         result = boolean_logic.NOT(single)
         assert torch.equal(result, torch.tensor([False]))
 
-        # Test with different shapes that should broadcast
-        x = torch.tensor([[True, False], [False, True]])
-        y = torch.tensor([True, False])
-        result = boolean_logic.AND2(x, y)
-        expected = torch.tensor([[True, False], [False, False]])
-        assert torch.equal(result, expected)
-
 
 class TestGoedelFuzzyLogic:
     """Test Gödel fuzzy logic implementation."""

@@ -2,8 +2,6 @@ import torch
 
 from .logic import Logic
 
-from ..utils import safe_div
-
 
 class STL(Logic):
     """Signal Temporal Logic implementation for real-valued constraints.
@@ -16,8 +14,8 @@ class STL(Logic):
         k: Smoothness parameter (higher values give sharper approximations).
     """
 
-    def __init__(self, k=1.0):
-        super().__init__("STL")
+    def __init__(self, k: float = 5.0):
+        super().__init__(f"STL_{k}")
         self.k = k
 
     def NOT(self, x: torch.Tensor) -> torch.Tensor:
@@ -31,8 +29,8 @@ class STL(Logic):
         """
         return -x
 
-    def NEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("NEQ has not been implemented for STL")  # TODO
+    def EQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return -torch.abs(x - y)
 
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """STL less than or equal operation.
@@ -46,43 +44,42 @@ class STL(Logic):
         """
         return y - x
 
+    def LT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return self.AND(self.LEQ(x, y), self.NEQ(x, y))
+
     def AND(self, *xs) -> torch.Tensor:
-        """STL smooth minimum approximation for conjunction.
+        xs = torch.stack(xs, dim=0)
+        x_min = torch.min(xs, dim=0, keepdim=True).values
 
-        Uses exponential smoothing to approximate the minimum function
-        in a differentiable way, enabling gradient-based optimization.
+        eps = 1e-12  # TODO: make param!
+        near_zero = torch.abs(x_min) <= eps
 
-        Args:
-            *xs: Variable number of tensors to combine with AND.
+        # sign-preserving safe denom
+        s = torch.sign(x_min)
+        s = torch.where(s == 0, torch.ones_like(s), s)
+        denom = s * torch.clamp(torch.abs(x_min), min=eps)
 
-        Returns:
-            Smooth minimum approximation of input tensors.
-        """
-        xs = torch.stack(xs)
-        x_min, _ = torch.min(xs, dim=0)
-        rel = safe_div(xs - x_min, x_min)
-
-        # NOTE: for numerical stability do not directly calculate exp
+        # tilde x_i = (x_i - x_min) / x_min
+        t = (xs - x_min) / denom
 
         # case 1: x_min < 0
-        rel_max = rel.max(dim=0, keepdim=True).values
-        exp1 = torch.exp(rel - rel_max)
-        exp2 = torch.exp(self.k * rel - self.k * rel_max)
-
-        num = (x_min * exp1 * exp2).sum(dim=0)
-        denom = exp1.sum(dim=0)
-        neg = safe_div(num, denom)
+        w_neg = torch.softmax(self.k * t, dim=0)
+        exp_t = torch.exp(torch.clamp(t, max=0.0))  # avoid explosion
+        out_neg = x_min * torch.sum(exp_t * w_neg, dim=0, keepdim=True)
 
         # case 2: x_min > 0
-        krel = -self.k * rel
-        krel_max = krel.max(dim=0, keepdim=True).values
-        exp_krel = torch.exp(krel - krel_max)
+        w_pos = torch.softmax(-self.k * t, dim=0)
+        out_pos = torch.sum(xs * w_pos, dim=0, keepdim=True)
 
-        num = (xs * exp_krel).sum(dim=0)
-        denom = exp_krel.sum(dim=0)
-        pos = safe_div(num, denom)
+        neg = x_min < -eps
+        pos = x_min > eps
 
-        return torch.where(x_min < 0, neg, torch.where(x_min > 0, pos, x_min))
+        out = x_min * 0.0
+        out = torch.where(neg, out_neg, out)
+        out = torch.where(pos, out_pos, out)
+        out = torch.where(near_zero, x_min * 0.0, out)
 
-    def OR(self, *xs) -> torch.Tensor:
-        return self.NOT(self.AND(*[self.NOT(x) for x in xs]))
+        return out.squeeze(0)
+
+    def OR(self, *xs):
+        return self.NOT(self.AND(*(self.NOT(x) for x in xs)))

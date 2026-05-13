@@ -12,10 +12,23 @@ BoundedDataset classes.
 from .constraints import (
     Constraint,
     StandardRobustnessConstraint,
+    StrongClassificationRobustnessConstraint,
+    ClassificationRobustnessConstraint,
+    ExactlyOnePerPairConstraint,
+    NotBothConstraint,
+    ClothingFootwearConstraint,
+    AlsomitraProperty1Constraint,
+    AlsomitraProperty2Constraint,
+    AlsomitraProperty3Constraint,
 )
 from .preconditions import EpsilonBall
 from .postconditions import (
     StandardRobustnessPostcondition,
+    StrongClassificationRobustnessPostcondition,
+    ClassificationRobustnessPostcondition,
+    ExactlyOnePerPairPostcondition,
+    NotBothPostcondition,
+    ClothingFootwearPostcondition,
     LipschitzRobustnessPostcondition,
     GroupPostcondition,
     AlsomitraOutputPostcondition,
@@ -25,10 +38,24 @@ __all__ = [
     # Constraints
     "Constraint",
     "StandardRobustnessConstraint",
+    "StrongClassificationRobustnessConstraint",
+    "ClassificationRobustnessConstraint",
+    "PrimeEvenOnlyIfTwoConstraint",
+    "ExactlyOnePerPairConstraint",
+    "NotBothConstraint",
+    "ClothingFootwearConstraint",
+    "AlsomitraProperty1Constraint",
+    "AlsomitraProperty2Constraint",
+    "AlsomitraProperty3Constraint",
     # Preconditions
     "EpsilonBall",
     # Postconditions
     "StandardRobustnessPostcondition",
+    "StrongClassificationRobustnessPostcondition",
+    "ClassificationRobustnessPostcondition",
+    "ExactlyOnePerPairPostcondition",
+    "NotBothPostcondition",
+    "ClothingFootwearPostcondition",
     "LipschitzRobustnessPostcondition",
     "GroupPostcondition",
     "AlsomitraOutputPostcondition",

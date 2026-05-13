@@ -1,271 +1,334 @@
-from __future__ import print_function
+from __future__ import annotations
 
 import codecs
-import os
 import textwrap
-
-import pandas
-import numpy
-
+from collections import defaultdict, namedtuple
 from datetime import timedelta
-
 from pathlib import Path
 
-from collections import namedtuple
+import re
 
-Result = namedtuple("Result", "p_acc c_acc c_sec overall")
+import pandas as pd
 
 
-def format_value(v) -> str:
-    return "nan" if v == -1 else rf"\qty{{{v * 100:.2f}}}{{\percent}}"
+Result = namedtuple("Result", "p_acc c_acc c_sec_self c_sec_common")
+VerificationResult = namedtuple("VerificationResult", "verified unknown")
 
 
 def get_name_from_file(report: str) -> str:
-    name = Path(report).stem
+    stem = Path(report).stem
 
-    if name == "Goedel":
-        name = "Gödel"
-    elif name == "Lukasiewicz":
-        name = r"\L ukasiewicz"
-    elif name == "KleeneDienes":
-        name = "Kleene-Dienes"
-    elif name == "ReichenbachSigmoidal":
-        name = "sig. Reichenbach"
+    names = {
+        "Goedel": "Gödel",
+        "Lukasiewicz": r"{\L}ukasiewicz",
+        "KleeneDienes": "Kleene-Dienes",
+        "ReichenbachSigmoidal": "sig. Reichenbach",
+    }
 
-    if Path(report).stem == "Goedel" and "robustness" in report:
+    name = names.get(stem, stem)
+
+    if stem == "Goedel" and "robustness" in report:
         name = "Fuzzy Logic"
 
     return name
 
 
-def get_legendentry_from_file(report: str) -> str:
-    return rf"\addlegendentry {{{get_name_from_file(report)}}};"
+def format_mean_std(values: list[float]) -> str:
+    s = pd.Series(values, dtype=float)
+
+    mean = 100 * s.mean()
+    std = 100 * s.std(ddof=1) if len(s) > 1 else 0.0
+
+    return rf"{mean:.1f}+-{std:.1f}"
 
 
-def write_plot_file(report_dir: str, target_file: str):
-    def full_path(r: str) -> str:
-        return f"{report_dir}/{r}"
+def format_optional_mean_std(values: list[float]) -> str:
+    if not values:
+        return r"\text{n/a}"
+    return format_mean_std(values)
+
+
+def parse_log_file(log_file: Path) -> VerificationResult:
+    text = log_file.read_text()
+
+    def extract(name: str) -> tuple[int, int]:
+        match = re.search(rf"{re.escape(name)}:\s*(\d+)/(\d+)", text)
+
+        if not match:
+            raise ValueError(f"Could not find '{name}' in {log_file}")
+        return int(match.group(1)), int(match.group(2))
+
+    verified, total = extract("verified")
+    timed_out, _ = extract("timed-out")
+    errored, _ = extract("errored")
+
+    return VerificationResult(
+        verified=verified / total,
+        unknown=(timed_out + errored) / total,
+    )
+
+
+def parse_logic_and_epsilon_from_log(log_file: Path) -> tuple[str, str]:
+    stem = log_file.stem
+    stem = re.sub(
+        r"_chunk\d+$", "", stem
+    )  # TODO: no longer generation chunks, change dice_to_idx.py and here
+
+    parts = stem.split("_")
+
+    if len(parts) < 3:
+        raise ValueError(f"Unexpected log filename format: {log_file}")
+
+    # last two parts are epsilon, some logic encode their softness param e.g. QLL_5
+    eps = "_".join(parts[-2:])
+
+    # everything before is logic
+    logic_stem = "_".join(parts[:-2])
+
+    logic = get_name_from_file(logic_stem)
+
+    return logic, eps
+
+
+# filenames like SomeLogic_0_5.log mean eps=0.5, SomeLogic_4_255.log means eps=4/255
+# maybe it's okay to hard-code those two cases now
+def eps_value(eps: str) -> float:
+    if "_" in eps:
+        num, denom = eps.split("_")
+
+        if denom == "255":
+            return float(num) / 255.0
+        else:
+            return float(f"{num}.{denom}")
+
+    return float(eps)
+
+
+def format_eps(eps: str) -> str:
+    if eps.endswith("_255"):
+        num = eps.removesuffix("_255")
+        return rf"$\epsilon=\frac{{{num}}}{{255}}$"
+
+    return rf"$\epsilon={eps.replace('_', '.')}$"
+
+
+def read_final_result(csv_file: Path) -> Result:
+    df = pd.read_csv(csv_file, comment="#")
+    last = df.iloc[-1]
+
+    return Result(
+        p_acc=last["Test-P-Metric"],
+        c_acc=last["Test-C-Acc"],
+        c_sec_self=last["Test-C-Sec-self"],
+        c_sec_common=last["Test-C-Sec-common"],
+    )
+
+
+def compute_time(csv_file: Path) -> float:
+    df = pd.read_csv(csv_file, comment="#")
+
+    total_test_time = df["Test-Time"].sum()
+    total_train_time = df["Train-Time"].iloc[1:].sum()
+
+    avg_test_time = df["Test-Time"].mean()
+    avg_train_time = df["Train-Time"].iloc[1:].mean()
+
+    print(
+        f"file: {csv_file} "
+        f"avg. train time [s]: {avg_train_time:.2f} "
+        f"avg. test time [s]: {avg_test_time:.2f} "
+        f"total train time [s]: {total_train_time:.2f} "
+        f"total test time [s]: {total_test_time:.2f}"
+    )
+
+    return total_train_time + total_test_time
+
+
+def mean(values: list[float]) -> float:
+    return float(pd.Series(values, dtype=float).mean())
+
+
+def bold(s: str) -> str:
+    return rf"\textbf{{{s}}}"
+
+
+def maybe_bold(s: str, do_bold: bool) -> str:
+    return bold(s) if do_bold else s
+
+
+# the best logic is the best product of PAcc and CSat (for the highest epsilon which is the one we train with)
+def score_logic(
+    values: list[Result],
+    verifications_by_eps: dict[str, list[VerificationResult]],
+    biggest_eps: str,
+) -> float:
+    verifications = verifications_by_eps.get(biggest_eps, [])
+
+    if not verifications:
+        return float("-inf")
+
+    p_acc = mean([v.p_acc for v in values])
+    verified = mean([v.verified for v in verifications])
+
+    return p_acc * verified
+
+
+def write_table_file(report_dir: Path, target_file: str) -> float:
+    """
+    Expects structure:
+
+        constraint/dataset/seed/*.csv
+
+    where each CSV corresponds to one logic.
+    """
+
+    csv_files = sorted(report_dir.glob("*/*.csv"))
+
+    csv_files = [f for f in csv_files if not f.name.endswith("RegressionPlot.csv")]
+
+    if not csv_files:
+        return 0.0
+
+    results_by_logic: dict[str, list[Result]] = defaultdict(list)
+    verification_by_logic_eps: dict[str, dict[str, list[VerificationResult]]] = (
+        defaultdict(lambda: defaultdict(list))
+    )
+    all_eps: set[str] = set()
+
+    total_seconds = 0.0
+
+    for csv_file in csv_files:
+        logic = get_name_from_file(str(csv_file))
+
+        result = read_final_result(csv_file)
+        results_by_logic[logic].append(result)
+
+        total_seconds += compute_time(csv_file)
+
+    log_files = sorted(report_dir.glob("*/*.log"))
+
+    for log_file in log_files:
+        logic, eps = parse_logic_and_epsilon_from_log(log_file)
+
+        verification = parse_log_file(log_file)
+
+        verification_by_logic_eps[logic][eps].append(verification)
+        all_eps.add(eps)
 
     with codecs.open(target_file, "w", "utf-8") as file:
-        begin = (
-            textwrap.dedent(r"""
-            \documentclass[tikz]{standalone}
-            \usepackage[utf8]{inputenc}
-            \usepackage[T1]{fontenc}
+        eps_order = sorted(all_eps, key=eps_value)
+        biggest_eps = eps_order[-1] if eps_order else None
 
-            \usepackage{amsmath}
-
-            \input{tikz_settings}
-
-            \begin{document}
-            \begin{tikzpicture}[font=\small]
-              \begin{groupplot}[group/results]
-                \nextgroupplot[title={Prediction Accuracy (PAcc)},]
-            """).strip()
-            + "\n"
-        )
-
-        file.write(begin)
-
-        report_files = sorted([f for f in os.listdir(report_dir) if f.endswith(".csv")])
-
-        def write(report, key: str):
-            df = pandas.read_csv(os.path.join(report_dir, report), comment="#")
-
-            # best combination of P-Acc, C-Acc, and C-Sec in the last 10% of epochs
-            p_acc = df["Test-P-Metric"].values[-(len(df) // 10) :]
-            c_acc = df["Test-C-Acc"].values[-(len(df) // 10) :]
-            c_sec = df["Test-C-Sec"].values[-(len(df) // 10) :]
-            i = numpy.argmax(p_acc * c_acc * c_sec)
-
-            best_epoch = df["Epoch"].values[-(len(df) // 10) :][i] + 1
-
-            if "Baseline" in report:
-                file.write(
-                    rf"\addplot+[mark indices={best_epoch}, densely dotted] table [y={key}] {{{full_path(report)}}};"
-                    + "\n"
+        scores = (
+            {
+                logic: score_logic(
+                    results_by_logic[logic],
+                    verification_by_logic_eps.get(logic, {}),
+                    biggest_eps,
                 )
-            else:
-                file.write(
-                    rf"\addplot+[mark indices={best_epoch}] table [y={key}] {{{full_path(report)}}};"
-                    + "\n"
+                for logic in results_by_logic
+            }
+            if biggest_eps is not None
+            else {}
+        )
+
+        best_logic = max(scores, key=scores.get) if scores else None
+
+        verification_cols = "".join("Q[c, mode=text]Q[c, mode=text]" for _ in eps_order)
+
+        file.write(
+            textwrap.dedent(rf"""
+            \documentclass{{standalone}}
+            \usepackage[utf8]{{inputenc}}
+            \usepackage[T1]{{fontenc}}
+
+            \usepackage{{siunitx}}
+            \sisetup{{detect-all}}
+
+            \usepackage{{amsmath}}
+            \usepackage{{amssymb}}
+            \usepackage{{nicefrac}}
+
+            \usepackage{{tabularray}}
+            \UseTblrLibrary{{booktabs}}
+
+            \begin{{document}}
+            \footnotesize
+            \begin{{tblr}}
+            {{
+                colspec={{Q[l, mode=text]Q[c, mode=text]Q[c, mode=text]Q[c, mode=text]Q[c, mode=text]Q[c, mode=text]{verification_cols}}},
+                row{{1}}={{font=\bfseries, mode=text}},
+            }}
+                \toprule
+                Logic & Seeds & PAcc & CAcc & CSec (self) & CSec (common)
+            """).strip()
+            + "\n"
+        )
+
+        for eps in eps_order:
+            file.write(rf" & Verified {format_eps(eps)} & Unknown {format_eps(eps)}")
+
+        file.write(r" \\" + "\n")
+        file.write(r"\midrule" + "\n")
+
+        for logic in sorted(results_by_logic):
+            values = results_by_logic[logic]
+            is_best = logic == best_logic
+
+            row = (
+                rf"{maybe_bold(logic, is_best)} & "
+                rf"{maybe_bold(str(len(values)), is_best)} & "
+                rf"{maybe_bold(format_mean_std([v.p_acc for v in values]), is_best)} & "
+                rf"{maybe_bold(format_mean_std([v.c_acc for v in values]), is_best)} & "
+                rf"{maybe_bold(format_mean_std([v.c_sec_self for v in values]), is_best)} & "
+                rf"{maybe_bold(format_mean_std([v.c_sec_common for v in values]), is_best)}"
+            )
+
+            for eps in eps_order:
+                verifications = verification_by_logic_eps.get(logic, {}).get(eps, [])
+
+                row += (
+                    rf" & {maybe_bold(format_optional_mean_std([v.verified for v in verifications]), is_best)}"
+                    rf" & {maybe_bold(format_optional_mean_std([v.unknown for v in verifications]), is_best)}"
                 )
 
-        for report in report_files:
-            print(f"reading {os.path.join(report_dir, report)}")
-            write(report, key="Test-P-Metric")
+            file.write(row + r" \\" + "\n")
 
-        intermediate = (
+        file.write(
             textwrap.dedent(r"""
-            \coordinate (c1) at (rel axis cs:0,1);
-                \nextgroupplot[title={Constraint Accuracy (CAcc)},
-                  yticklabels={},
-                  xlabel={},
-                ]
-            """).strip()
-            + "\n"
-        )
-        file.write(intermediate)
-
-        for report in report_files:
-            write(report, key="Test-C-Acc")
-
-        intermediate = (
-            textwrap.dedent(r"""
-            \coordinate (c2) at (rel axis cs:0,1);
-                \nextgroupplot[title={Constraint Security (CSec)},
-                  yticklabel pos=right,
-                  yticklabel style={anchor=east,xshift=2.5em},
-                  legend to name=full-legend
-                ]
-            """).strip()
-            + "\n"
-        )
-        file.write(intermediate)
-
-        for report in report_files:
-            write(report, key="Test-C-Sec")
-
-        for report in report_files:
-            file.write(get_legendentry_from_file(full_path(report)) + "\n")
-
-        end = (
-            textwrap.dedent(r"""
-            \coordinate (c3) at (rel axis cs:1,1);
-              \end{groupplot}
-              \coordinate (c4) at ($(c1)!.5!(c3)$);
-              \node[below, yshift=0.5cm] at (c4 |- current bounding box.south) {\pgfplotslegendfromname{full-legend}};
-            \end{tikzpicture}
+                \bottomrule
+              \end{tblr}
             \end{document}
             """).strip()
             + "\n"
         )
 
-        file.write(end)
-
-
-def write_table_file(report_dir: str, target_file: str):
-    def full_path(r: str) -> str:
-        return f"{report_dir}/{r}"
-
-    results: dict[str, Result] = {}
-
-    total_seconds = 0.0
-
-    report_files = sorted([f for f in os.listdir(report_dir) if f.endswith(".csv")])
-
-    if len(report_files) < 1:
-        return
-
-    for report in report_files:
-        df = pandas.read_csv(os.path.join(report_dir, report), comment="#")
-
-        # best combination of P-Acc, C-Acc, and C-Sec in the last 10% of epochs
-        p_acc = df["Test-P-Metric"].values[-(len(df) // 10) :]
-        c_acc = df["Test-C-Acc"].values[-(len(df) // 10) :]
-        c_sec = df["Test-C-Sec"].values[-(len(df) // 10) :]
-        i = numpy.argmax(p_acc * c_acc * c_sec)
-
-        results[full_path(report)] = Result(
-            p_acc[i], c_acc[i], c_sec[i], p_acc[i] * c_acc[i] * c_sec[i]
-        )
-
-        best = max(results, key=lambda k: results[k].overall)
-
-        avg_test_time = df["Test-Time"].mean()
-        avg_train_time = df["Train-Time"].iloc[1:].mean()
-
-        total_test_time = df["Test-Time"].sum()
-        total_train_time = df["Train-Time"].iloc[1:].sum()
-
-        total_seconds += total_train_time + total_test_time
-
-        print(
-            f"file: {report} avg. train time [s]: {avg_train_time:.2f} avg. test time [s]: {avg_test_time:.2f} total train time [s]: {total_train_time:.2f} total test time [s]: {total_test_time:.2f}"
-        )
-
-        with codecs.open(target_file, "w", "utf-8") as file:
-            begin = (
-                textwrap.dedent(r"""
-                \documentclass{standalone}
-                \usepackage[utf8]{inputenc}
-                \usepackage[T1]{fontenc}
-
-                \usepackage{siunitx}
-                \sisetup{detect-all}
-
-                \usepackage{amsmath}
-                \usepackage{amssymb}
-
-                \usepackage{tabularray}
-                \UseTblrLibrary{booktabs}
-
-                \begin{document}
-                \footnotesize
-                \begin{tblr}
-                  {
-                    colspec={Q[l, mode=text]Q[c, mode=text]Q[c, mode=text]Q[c, mode=text]},
-                    row{1}={font=\bfseries, mode=text},
-                  }
-                    \toprule
-                      Logic & PAcc & CAcc & CSec \\
-                    \midrule
-                """).strip()
-                + "\n"
-            )
-            file.write(begin)
-
-            for key, value in results.items():
-                if key == best:
-                    file.write(
-                        rf"{get_name_from_file(key)} & \textbf{{{format_value(value.p_acc)}}} & \textbf{{{format_value(value.c_acc)}}} & \textbf{{{format_value(value.c_sec)}}} \\"
-                        + "\n"
-                    )
-                else:
-                    file.write(
-                        rf"{get_name_from_file(key)} & {format_value(value.p_acc)} & {format_value(value.c_acc)} & {format_value(value.c_sec)} \\"
-                        + "\n"
-                    )
-
-            end = (
-                textwrap.dedent(r"""
-                    \bottomrule
-                  \end{tblr}
-                \end{document}
-                """).strip()
-                + "\n"
-            )
-
-            file.write(end)
-
     return total_seconds
 
 
 def main():
-    total_seconds = 0
+    total_seconds = 0.0
 
-    for folder_constraint in os.listdir("."):
-        if (
-            os.path.isdir(folder_constraint)
-            and folder_constraint != ".git"
-            and folder_constraint != "alsomitra"
-        ):
-            for folder_dataset in os.listdir(folder_constraint):
-                if (
-                    os.path.isdir(os.path.join(folder_constraint, folder_dataset))
-                    and folder_dataset != ".git"
-                ):
-                    report_dir = f"{folder_constraint}/{folder_dataset}"
+    for constraint_dir in sorted(Path(".").iterdir()):
+        if not constraint_dir.is_dir():
+            continue
 
-                    plot_file = f"plot_{folder_constraint}_{folder_dataset}.tex"
-                    write_plot_file(report_dir, plot_file)
+        if constraint_dir.name in {".git", "alsomitra"}:
+            continue
 
-                    table_file = f"table_{folder_constraint}_{folder_dataset}.tex"
-                    total_seconds += write_table_file(report_dir, table_file)
+        for dataset_dir in sorted(constraint_dir.iterdir()):
+            if not dataset_dir.is_dir():
+                continue
+
+            report_dir = dataset_dir
+
+            table_file = f"table_{constraint_dir.name}_{dataset_dir.name}.tex"
+            total_seconds += write_table_file(report_dir, table_file)
 
     total_time = timedelta(seconds=total_seconds)
     hours, remainder = divmod(total_time.seconds, 3600)
     minutes, _ = divmod(remainder, 60)
+
     print(f"Total time: {total_time.days} days {hours} hours {minutes} minutes")
 
 

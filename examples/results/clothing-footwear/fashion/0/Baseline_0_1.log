@@ -1,0 +1,270 @@
+[93m
+Warning: The property 'clothingFootwear!97' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!90' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!87' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!70' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!65' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!56' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!51' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!49' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!47' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!39' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!35' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!26' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!25' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!24' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!23' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!22' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!19' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!11' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: The property 'clothingFootwear!10' was found to evaluate to 'True' without needing to call the verifier. This usually indicates a fault with either the specification or any external datasets used.
+
+
+Warning: In property 'clothingFootwear', at least one of the generated queries were found to contain a strict inequality (i.e. constraints of the form 'x < y'). Unfortunately the Marabou query format only supports non-strict inequalities (i.e. constraints of the form 'x <= y').
+
+In order to provide support, Vehicle has automatically converted the strict inequalities to non-strict inequalites. This is not sound, but errors will be at most the floating point epsilon used by the verifier, which is usually very small (e.g. 1e-9). However, this may lead to unexpected behaviour (e.g. loss of the law of excluded middle).
+
+See https://github.com/vehicle-lang/vehicle/issues/74 for further details.
+[m
+  clothingFootwear!0 [.............................................] 0/3 queries  clothingFootwear!0 [===============>.............................] 1/3 queries  clothingFootwear!1 [.............................................] 0/3 queries  clothingFootwear!1 [===============>.............................] 1/3 queries  clothingFootwear!2 [.............................................] 0/3 queries  clothingFootwear!2 [===============>.............................] 1/3 queries  clothingFootwear!3 [.............................................] 0/5 queries  clothingFootwear!3 [=========>...................................] 1/5 queries  clothingFootwear!4 [.............................................] 0/3 queries  clothingFootwear!4 [===============>.............................] 1/3 queries  clothingFootwear!5 [.............................................] 0/5 queries  clothingFootwear!5 [=========>...................................] 1/5 queries  clothingFootwear!6 [.............................................] 0/5 queries  clothingFootwear!6 [=========>...................................] 1/5 queries  clothingFootwear!7 [.............................................] 0/5 queries  clothingFootwear!7 [=========>...................................] 1/5 queries  clothingFootwear!8 [.............................................] 0/3 queries  clothingFootwear!8 [===============>.............................] 1/3 queries  clothingFootwear!9 [.............................................] 0/3 queries  clothingFootwear!9 [===============>.............................] 1/3 queries  clothingFootwear!10 [............................................] 0/0 queries
+  clothingFootwear!11 [............................................] 0/0 queries
+  clothingFootwear!12 [............................................] 0/3 queries  clothingFootwear!12 [==============>.............................] 1/3 queries  clothingFootwear!13 [............................................] 0/3 queries  clothingFootwear!13 [==============>.............................] 1/3 queries  clothingFootwear!14 [............................................] 0/5 queries  clothingFootwear!14 [========>...................................] 1/5 queries  clothingFootwear!15 [............................................] 0/3 queries  clothingFootwear!15 [==============>.............................] 1/3 queries  clothingFootwear!16 [............................................] 0/5 queries  clothingFootwear!16 [========>...................................] 1/5 queries  clothingFootwear!17 [............................................] 0/3 queries  clothingFootwear!17 [==============>.............................] 1/3 queries  clothingFootwear!18 [............................................] 0/5 queries  clothingFootwear!18 [========>...................................] 1/5 queries  clothingFootwear!19 [............................................] 0/0 queries
+  clothingFootwear!20 [............................................] 0/3 queries  clothingFootwear!20 [==============>.............................] 1/3 queries  clothingFootwear!21 [............................................] 0/3 queries  clothingFootwear!21 [==============>.............................] 1/3 queries  clothingFootwear!22 [............................................] 0/0 queries
+  clothingFootwear!23 [............................................] 0/0 queries
+  clothingFootwear!24 [............................................] 0/0 queries
+  clothingFootwear!25 [............................................] 0/0 queries
+  clothingFootwear!26 [............................................] 0/0 queries
+  clothingFootwear!27 [............................................] 0/5 queries  clothingFootwear!27 [========>...................................] 1/5 queries  clothingFootwear!28 [............................................] 0/5 queries  clothingFootwear!28 [========>...................................] 1/5 queries  clothingFootwear!29 [............................................] 0/3 queries  clothingFootwear!29 [==============>.............................] 1/3 queries  clothingFootwear!30 [............................................] 0/3 queries  clothingFootwear!30 [==============>.............................] 1/3 queries  clothingFootwear!31 [............................................] 0/3 queries  clothingFootwear!31 [==============>.............................] 1/3 queries  clothingFootwear!32 [............................................] 0/3 queries  clothingFootwear!32 [==============>.............................] 1/3 queries  clothingFootwear!33 [............................................] 0/3 queries  clothingFootwear!33 [==============>.............................] 1/3 queries  clothingFootwear!34 [............................................] 0/3 queries  clothingFootwear!34 [==============>.............................] 1/3 queries  clothingFootwear!35 [............................................] 0/0 queries
+  clothingFootwear!36 [............................................] 0/3 queries  clothingFootwear!36 [==============>.............................] 1/3 queries  clothingFootwear!37 [............................................] 0/5 queries  clothingFootwear!37 [========>...................................] 1/5 queries  clothingFootwear!38 [............................................] 0/3 queries  clothingFootwear!38 [==============>.............................] 1/3 queries  clothingFootwear!39 [............................................] 0/0 queries
+  clothingFootwear!40 [............................................] 0/5 queries  clothingFootwear!40 [========>...................................] 1/5 queries  clothingFootwear!41 [............................................] 0/3 queries  clothingFootwear!41 [==============>.............................] 1/3 queries  clothingFootwear!42 [............................................] 0/3 queries  clothingFootwear!42 [==============>.............................] 1/3 queries  clothingFootwear!43 [............................................] 0/5 queries  clothingFootwear!43 [========>...................................] 1/5 queries  clothingFootwear!44 [............................................] 0/5 queries  clothingFootwear!44 [========>...................................] 1/5 queries  clothingFootwear!45 [............................................] 0/5 queries  clothingFootwear!45 [========>...................................] 1/5 queries  clothingFootwear!46 [............................................] 0/5 queries  clothingFootwear!46 [========>...................................] 1/5 queries  clothingFootwear!47 [............................................] 0/0 queries
+  clothingFootwear!48 [............................................] 0/3 queries  clothingFootwear!48 [==============>.............................] 1/3 queries  clothingFootwear!49 [............................................] 0/0 queries
+  clothingFootwear!50 [............................................] 0/5 queries  clothingFootwear!50 [========>...................................] 1/5 queries  clothingFootwear!51 [............................................] 0/0 queries
+  clothingFootwear!52 [............................................] 0/3 queries  clothingFootwear!52 [==============>.............................] 1/3 queries  clothingFootwear!53 [............................................] 0/5 queries  clothingFootwear!53 [========>...................................] 1/5 queries  clothingFootwear!54 [............................................] 0/3 queries  clothingFootwear!54 [==============>.............................] 1/3 queries  clothingFootwear!55 [............................................] 0/5 queries  clothingFootwear!55 [========>...................................] 1/5 queries  clothingFootwear!56 [............................................] 0/0 queries
+  clothingFootwear!57 [............................................] 0/5 queries  clothingFootwear!57 [========>...................................] 1/5 queries  clothingFootwear!58 [............................................] 0/5 queries  clothingFootwear!58 [========>...................................] 1/5 queries  clothingFootwear!59 [............................................] 0/3 queries  clothingFootwear!59 [==============>.............................] 1/3 queries  clothingFootwear!60 [............................................] 0/3 queries  clothingFootwear!60 [==============>.............................] 1/3 queries  clothingFootwear!61 [............................................] 0/3 queries  clothingFootwear!61 [==============>.............................] 1/3 queries  clothingFootwear!62 [............................................] 0/3 queries  clothingFootwear!62 [==============>.............................] 1/3 queries  clothingFootwear!63 [............................................] 0/5 queries  clothingFootwear!63 [========>...................................] 1/5 queries  clothingFootwear!64 [............................................] 0/3 queries  clothingFootwear!64 [==============>.............................] 1/3 queries  clothingFootwear!65 [............................................] 0/0 queries
+  clothingFootwear!66 [............................................] 0/3 queries  clothingFootwear!66 [==============>.............................] 1/3 queries  clothingFootwear!67 [............................................] 0/5 queries  clothingFootwear!67 [========>...................................] 1/5 queries  clothingFootwear!68 [............................................] 0/3 queries  clothingFootwear!68 [==============>.............................] 1/3 queries  clothingFootwear!69 [............................................] 0/3 queries  clothingFootwear!69 [==============>.............................] 1/3 queries  clothingFootwear!70 [............................................] 0/0 queries
+  clothingFootwear!71 [............................................] 0/3 queries  clothingFootwear!71 [==============>.............................] 1/3 queries  clothingFootwear!72 [............................................] 0/5 queries  clothingFootwear!72 [========>...................................] 1/5 queries  clothingFootwear!73 [............................................] 0/3 queries  clothingFootwear!73 [==============>.............................] 1/3 queries  clothingFootwear!74 [............................................] 0/3 queries  clothingFootwear!74 [==============>.............................] 1/3 queries  clothingFootwear!75 [............................................] 0/3 queries  clothingFootwear!75 [==============>.............................] 1/3 queries  clothingFootwear!76 [............................................] 0/3 queries  clothingFootwear!76 [==============>.............................] 1/3 queries  clothingFootwear!77 [............................................] 0/5 queries  clothingFootwear!77 [========>...................................] 1/5 queries  clothingFootwear!78 [............................................] 0/5 queries  clothingFootwear!78 [========>...................................] 1/5 queries  clothingFootwear!79 [............................................] 0/3 queries  clothingFootwear!79 [==============>.............................] 1/3 queries  clothingFootwear!80 [............................................] 0/3 queries  clothingFootwear!80 [==============>.............................] 1/3 queries  clothingFootwear!81 [............................................] 0/5 queries  clothingFootwear!81 [========>...................................] 1/5 queries  clothingFootwear!82 [............................................] 0/5 queries  clothingFootwear!82 [========>...................................] 1/5 queries  clothingFootwear!83 [............................................] 0/5 queries  clothingFootwear!83 [========>...................................] 1/5 queries  clothingFootwear!84 [............................................] 0/5 queries  clothingFootwear!84 [========>...................................] 1/5 queries  clothingFootwear!85 [............................................] 0/3 queries  clothingFootwear!85 [==============>.............................] 1/3 queries  clothingFootwear!86 [............................................] 0/3 queries  clothingFootwear!86 [==============>.............................] 1/3 queries  clothingFootwear!87 [............................................] 0/0 queries
+  clothingFootwear!88 [............................................] 0/5 queries  clothingFootwear!88 [========>...................................] 1/5 queries  clothingFootwear!89 [............................................] 0/5 queries  clothingFootwear!89 [========>...................................] 1/5 queries  clothingFootwear!90 [............................................] 0/0 queries
+  clothingFootwear!91 [............................................] 0/3 queries  clothingFootwear!91 [==============>.............................] 1/3 queries  clothingFootwear!92 [............................................] 0/5 queries  clothingFootwear!92 [========>...................................] 1/5 queries  clothingFootwear!93 [............................................] 0/3 queries  clothingFootwear!93 [==============>.............................] 1/3 queries  clothingFootwear!94 [............................................] 0/5 queries  clothingFootwear!94 [========>...................................] 1/5 queries  clothingFootwear!95 [............................................] 0/3 queries  clothingFootwear!95 [==============>.............................] 1/3 queries  clothingFootwear!96 [............................................] 0/3 queries  clothingFootwear!96 [==============>.............................] 1/3 queries  clothingFootwear!97 [............................................] 0/0 queries
+  clothingFootwear!98 [............................................] 0/5 queries  clothingFootwear!98 [========>...................................] 1/5 queries  clothingFootwear!99 [............................................] 0/5 queries  clothingFootwear!99 [========>...................................] 1/5 queriesVerifying properties:
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+    result: [92m🗸[m - (trivial)
+    result: [92m🗸[m - (trivial)
+    result: [92m🗸[m - (trivial)
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [93m?[m - Marabou timed out
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [93m?[m - Marabou timed out
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - (trivial)
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+clothingFootwear:
+    verified:  19/100
+    falsified: 79/100
+    timed-out: 2/100
+    errored:   0/100

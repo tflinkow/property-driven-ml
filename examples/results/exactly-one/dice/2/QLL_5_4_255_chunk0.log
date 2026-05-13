@@ -1,0 +1,153 @@
+[93m
+Warning: the following datasets were provided but not used by the specification: { labels
+}
+
+
+Warning: In property 'exactlyOne', at least one of the generated queries were found to contain a strict inequality (i.e. constraints of the form 'x < y'). Unfortunately the Marabou query format only supports non-strict inequalities (i.e. constraints of the form 'x <= y').
+
+In order to provide support, Vehicle has automatically converted the strict inequalities to non-strict inequalites. This is not sound, but errors will be at most the floating point epsilon used by the verifier, which is usually very small (e.g. 1e-9). However, this may lead to unexpected behaviour (e.g. loss of the law of excluded middle).
+
+See https://github.com/vehicle-lang/vehicle/issues/74 for further details.
+[m
+  exactlyOne!0 [...................................................] 0/6 queries  exactlyOne!0 [========>..........................................] 1/6 queries  exactlyOne!1 [...................................................] 0/6 queries  exactlyOne!1 [========>..........................................] 1/6 queries  exactlyOne!1 [=================>.................................] 2/6 queries  exactlyOne!2 [...................................................] 0/6 queries  exactlyOne!2 [========>..........................................] 1/6 queries  exactlyOne!3 [...................................................] 0/6 queries  exactlyOne!3 [========>..........................................] 1/6 queries  exactlyOne!3 [=================>.................................] 2/6 queries  exactlyOne!3 [=========================>.........................] 3/6 queries  exactlyOne!4 [...................................................] 0/6 queries  exactlyOne!4 [========>..........................................] 1/6 queries  exactlyOne!5 [...................................................] 0/6 queries  exactlyOne!5 [========>..........................................] 1/6 queries  exactlyOne!5 [=================>.................................] 2/6 queries  exactlyOne!5 [=========================>.........................] 3/6 queries  exactlyOne!5 [==================================>................] 4/6 queries  exactlyOne!5 [==========================================>........] 5/6 queries  exactlyOne!5 [===================================================] 6/6 queries
+  exactlyOne!6 [...................................................] 0/6 queries  exactlyOne!6 [========>..........................................] 1/6 queries  exactlyOne!6 [=================>.................................] 2/6 queries  exactlyOne!7 [...................................................] 0/6 queries  exactlyOne!7 [========>..........................................] 1/6 queries  exactlyOne!7 [=================>.................................] 2/6 queries  exactlyOne!7 [=========================>.........................] 3/6 queries  exactlyOne!7 [==================================>................] 4/6 queries  exactlyOne!7 [==========================================>........] 5/6 queries  exactlyOne!7 [===================================================] 6/6 queries
+  exactlyOne!8 [...................................................] 0/6 queries  exactlyOne!8 [========>..........................................] 1/6 queries  exactlyOne!9 [...................................................] 0/6 queries  exactlyOne!9 [========>..........................................] 1/6 queries  exactlyOne!10 [..................................................] 0/6 queries  exactlyOne!10 [========>.........................................] 1/6 queries  exactlyOne!11 [..................................................] 0/6 queries  exactlyOne!11 [========>.........................................] 1/6 queries  exactlyOne!12 [..................................................] 0/6 queries  exactlyOne!12 [========>.........................................] 1/6 queries  exactlyOne!13 [..................................................] 0/6 queries  exactlyOne!13 [========>.........................................] 1/6 queries  exactlyOne!14 [..................................................] 0/6 queries  exactlyOne!14 [========>.........................................] 1/6 queries  exactlyOne!14 [================>.................................] 2/6 queries  exactlyOne!14 [=========================>........................] 3/6 queries  exactlyOne!14 [=================================>................] 4/6 queries  exactlyOne!14 [=========================================>........] 5/6 queries  exactlyOne!14 [==================================================] 6/6 queries
+  exactlyOne!15 [..................................................] 0/6 queries  exactlyOne!15 [========>.........................................] 1/6 queries  exactlyOne!15 [================>.................................] 2/6 queries  exactlyOne!16 [..................................................] 0/6 queries  exactlyOne!16 [========>.........................................] 1/6 queries  exactlyOne!16 [================>.................................] 2/6 queries  exactlyOne!16 [=========================>........................] 3/6 queries  exactlyOne!17 [..................................................] 0/6 queries  exactlyOne!17 [========>.........................................] 1/6 queries  exactlyOne!18 [..................................................] 0/6 queries  exactlyOne!18 [========>.........................................] 1/6 queries  exactlyOne!18 [================>.................................] 2/6 queries  exactlyOne!19 [..................................................] 0/6 queries  exactlyOne!19 [========>.........................................] 1/6 queries  exactlyOne!19 [================>.................................] 2/6 queries  exactlyOne!19 [=========================>........................] 3/6 queries  exactlyOne!19 [=================================>................] 4/6 queries  exactlyOne!19 [=========================================>........] 5/6 queries  exactlyOne!19 [==================================================] 6/6 queries
+  exactlyOne!20 [..................................................] 0/6 queries  exactlyOne!20 [========>.........................................] 1/6 queries  exactlyOne!21 [..................................................] 0/6 queries  exactlyOne!21 [========>.........................................] 1/6 queries  exactlyOne!22 [..................................................] 0/6 queries  exactlyOne!22 [========>.........................................] 1/6 queries  exactlyOne!23 [..................................................] 0/6 queries  exactlyOne!23 [========>.........................................] 1/6 queries  exactlyOne!23 [================>.................................] 2/6 queries  exactlyOne!24 [..................................................] 0/6 queries  exactlyOne!24 [========>.........................................] 1/6 queries  exactlyOne!25 [..................................................] 0/6 queries  exactlyOne!25 [========>.........................................] 1/6 queries  exactlyOne!25 [================>.................................] 2/6 queries  exactlyOne!26 [..................................................] 0/6 queries  exactlyOne!26 [========>.........................................] 1/6 queries  exactlyOne!26 [================>.................................] 2/6 queries  exactlyOne!26 [=========================>........................] 3/6 queries  exactlyOne!26 [=================================>................] 4/6 queries  exactlyOne!26 [=========================================>........] 5/6 queries  exactlyOne!26 [==================================================] 6/6 queries
+  exactlyOne!27 [..................................................] 0/6 queries  exactlyOne!27 [========>.........................................] 1/6 queries  exactlyOne!27 [================>.................................] 2/6 queries  exactlyOne!27 [=========================>........................] 3/6 queries  exactlyOne!27 [=================================>................] 4/6 queries  exactlyOne!27 [=========================================>........] 5/6 queries  exactlyOne!27 [==================================================] 6/6 queries
+  exactlyOne!28 [..................................................] 0/6 queries  exactlyOne!28 [========>.........................................] 1/6 queries  exactlyOne!28 [================>.................................] 2/6 queries  exactlyOne!28 [=========================>........................] 3/6 queries  exactlyOne!28 [=================================>................] 4/6 queries  exactlyOne!29 [..................................................] 0/6 queries  exactlyOne!29 [========>.........................................] 1/6 queries  exactlyOne!30 [..................................................] 0/6 queries  exactlyOne!30 [========>.........................................] 1/6 queries  exactlyOne!31 [..................................................] 0/6 queries  exactlyOne!31 [========>.........................................] 1/6 queries  exactlyOne!32 [..................................................] 0/6 queries  exactlyOne!32 [========>.........................................] 1/6 queries  exactlyOne!32 [================>.................................] 2/6 queries  exactlyOne!32 [=========================>........................] 3/6 queries  exactlyOne!33 [..................................................] 0/6 queries  exactlyOne!33 [========>.........................................] 1/6 queries  exactlyOne!33 [================>.................................] 2/6 queries  exactlyOne!34 [..................................................] 0/6 queries  exactlyOne!34 [========>.........................................] 1/6 queries  exactlyOne!35 [..................................................] 0/6 queries  exactlyOne!35 [========>.........................................] 1/6 queries  exactlyOne!36 [..................................................] 0/6 queries  exactlyOne!36 [========>.........................................] 1/6 queries  exactlyOne!36 [================>.................................] 2/6 queries  exactlyOne!37 [..................................................] 0/6 queries  exactlyOne!37 [========>.........................................] 1/6 queries  exactlyOne!37 [================>.................................] 2/6 queries  exactlyOne!37 [=========================>........................] 3/6 queries  exactlyOne!37 [=================================>................] 4/6 queries  exactlyOne!37 [=========================================>........] 5/6 queries  exactlyOne!38 [..................................................] 0/6 queries  exactlyOne!38 [========>.........................................] 1/6 queries  exactlyOne!38 [================>.................................] 2/6 queries  exactlyOne!38 [=========================>........................] 3/6 queries  exactlyOne!38 [=================================>................] 4/6 queries  exactlyOne!39 [..................................................] 0/6 queries  exactlyOne!39 [========>.........................................] 1/6 queries  exactlyOne!39 [================>.................................] 2/6 queries  exactlyOne!39 [=========================>........................] 3/6 queries  exactlyOne!39 [=================================>................] 4/6 queries  exactlyOne!39 [=========================================>........] 5/6 queries  exactlyOne!39 [==================================================] 6/6 queries
+  exactlyOne!40 [..................................................] 0/6 queries  exactlyOne!40 [========>.........................................] 1/6 queries  exactlyOne!40 [================>.................................] 2/6 queries  exactlyOne!41 [..................................................] 0/6 queries  exactlyOne!41 [========>.........................................] 1/6 queries  exactlyOne!42 [..................................................] 0/6 queries  exactlyOne!42 [========>.........................................] 1/6 queries  exactlyOne!43 [..................................................] 0/6 queries  exactlyOne!43 [========>.........................................] 1/6 queries  exactlyOne!43 [================>.................................] 2/6 queries  exactlyOne!44 [..................................................] 0/6 queries  exactlyOne!44 [========>.........................................] 1/6 queries  exactlyOne!44 [================>.................................] 2/6 queries  exactlyOne!44 [=========================>........................] 3/6 queries  exactlyOne!44 [=================================>................] 4/6 queries  exactlyOne!44 [=========================================>........] 5/6 queries  exactlyOne!44 [==================================================] 6/6 queries
+  exactlyOne!45 [..................................................] 0/6 queries  exactlyOne!45 [========>.........................................] 1/6 queries  exactlyOne!46 [..................................................] 0/6 queries  exactlyOne!46 [========>.........................................] 1/6 queries  exactlyOne!47 [..................................................] 0/6 queries  exactlyOne!47 [========>.........................................] 1/6 queries  exactlyOne!48 [..................................................] 0/6 queries  exactlyOne!48 [========>.........................................] 1/6 queries  exactlyOne!49 [..................................................] 0/6 queries  exactlyOne!49 [========>.........................................] 1/6 queries  exactlyOne!49 [================>.................................] 2/6 queries  exactlyOne!50 [..................................................] 0/6 queries  exactlyOne!50 [========>.........................................] 1/6 queries  exactlyOne!51 [..................................................] 0/6 queries  exactlyOne!51 [========>.........................................] 1/6 queries  exactlyOne!51 [================>.................................] 2/6 queries  exactlyOne!51 [=========================>........................] 3/6 queries  exactlyOne!52 [..................................................] 0/6 queries  exactlyOne!52 [========>.........................................] 1/6 queries  exactlyOne!53 [..................................................] 0/6 queries  exactlyOne!53 [========>.........................................] 1/6 queries  exactlyOne!54 [..................................................] 0/6 queries  exactlyOne!54 [========>.........................................] 1/6 queries  exactlyOne!55 [..................................................] 0/6 queries  exactlyOne!55 [========>.........................................] 1/6 queries  exactlyOne!56 [..................................................] 0/6 queries  exactlyOne!56 [========>.........................................] 1/6 queries  exactlyOne!57 [..................................................] 0/6 queries  exactlyOne!57 [========>.........................................] 1/6 queries  exactlyOne!58 [..................................................] 0/6 queries  exactlyOne!58 [========>.........................................] 1/6 queries  exactlyOne!59 [..................................................] 0/6 queries  exactlyOne!59 [========>.........................................] 1/6 queries  exactlyOne!60 [..................................................] 0/6 queries  exactlyOne!60 [========>.........................................] 1/6 queries  exactlyOne!61 [..................................................] 0/6 queries  exactlyOne!61 [========>.........................................] 1/6 queries  exactlyOne!61 [================>.................................] 2/6 queries  exactlyOne!61 [=========================>........................] 3/6 queries  exactlyOne!61 [=================================>................] 4/6 queries  exactlyOne!61 [=========================================>........] 5/6 queries  exactlyOne!61 [==================================================] 6/6 queries
+  exactlyOne!62 [..................................................] 0/6 queries  exactlyOne!62 [========>.........................................] 1/6 queries  exactlyOne!63 [..................................................] 0/6 queries  exactlyOne!63 [========>.........................................] 1/6 queries  exactlyOne!63 [================>.................................] 2/6 queries  exactlyOne!63 [=========================>........................] 3/6 queries  exactlyOne!63 [=================================>................] 4/6 queries  exactlyOne!64 [..................................................] 0/6 queries  exactlyOne!64 [========>.........................................] 1/6 queries  exactlyOne!64 [================>.................................] 2/6 queries  exactlyOne!64 [=========================>........................] 3/6 queries  exactlyOne!64 [=================================>................] 4/6 queries  exactlyOne!64 [=========================================>........] 5/6 queries  exactlyOne!64 [==================================================] 6/6 queries
+  exactlyOne!65 [..................................................] 0/6 queries  exactlyOne!65 [========>.........................................] 1/6 queries  exactlyOne!66 [..................................................] 0/6 queries  exactlyOne!66 [========>.........................................] 1/6 queries  exactlyOne!67 [..................................................] 0/6 queries  exactlyOne!67 [========>.........................................] 1/6 queriesVerifying properties:
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [93m?[m - Marabou timed out
+    result: [92m🗸[m - Marabou proved no counterexample exists
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [93m?[m - Marabou timed out
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [93m?[m - Marabou timed out
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+    result: [92m🗸[m - Marabou proved no counterexample exists
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+
+    result: [91m✗[m - Marabou found a counterexample
+exactlyOne:
+    verified:  10/68
+    falsified: 55/68
+    timed-out: 3/68
+    errored:   0/68

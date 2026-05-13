@@ -31,7 +31,9 @@ def safe_div(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     Returns:
         Division result with zeros replaced by epsilon.
     """
-    return x / y.clamp(min=torch.finfo(y.dtype).eps)
+    sign = torch.sign(y)  # return 1 for +x where x > 0, 0 for x == 0, -1 for x < 0
+    sign = torch.where(sign == 0, torch.ones_like(sign), sign)
+    return x / (sign * y.abs().clamp(min=torch.finfo(y.dtype).eps))
 
 
 def safe_zero(x: torch.Tensor) -> torch.Tensor:
@@ -57,3 +59,7 @@ def safe_pow(x: torch.Tensor, y: torch.Tensor | float | int) -> torch.Tensor:
         Power result with zero base replaced by epsilon.
     """
     return torch.pow(safe_zero(x), y)
+
+
+def safe_exp(x: torch.Tensor) -> torch.Tensor:
+    return torch.exp(torch.clamp(x, max=60.0))  # TODO: explain!

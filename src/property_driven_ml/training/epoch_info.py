@@ -5,17 +5,57 @@ This module defines data structures used to track training progress
 and statistics during property-driven learning.
 """
 
-from collections import namedtuple
+import torch
+
+from dataclasses import dataclass
+from typing import Optional, Literal
+from abc import ABC, abstractmethod
 
 
-EpochInfoTrain = namedtuple(
-    "EpochInfoTrain",
-    "pred_metric constr_acc constr_sec pred_loss random_loss constr_loss pred_loss_weight constr_loss_weight input_img adv_img random_img",
-)
-"""Training epoch information containing metrics and sample images."""
+@dataclass(slots=True)
+class EpochInfo(ABC):
+    """Base class for epoch information."""
 
-EpochInfoTest = namedtuple(
-    "EpochInfoTest",
-    "pred_metric constr_acc constr_sec pred_loss random_loss constr_loss input_img adv_img random_img",
-)
-"""Test epoch information containing metrics and sample images."""
+    pred_metric: float
+    pred_loss: float
+
+    constr_acc: Optional[float] = None
+    random_loss: Optional[float] = None
+
+    input_img: Optional[torch.Tensor] = None
+    random_img: Optional[torch.Tensor] = None
+    adv_img: Optional[torch.Tensor] = None
+
+    @property
+    @abstractmethod
+    def phase(self) -> Literal["train", "test"]:
+        """Phase identifier."""
+
+
+@dataclass(slots=True)
+class EpochInfoTrain(EpochInfo):
+    constr_sec: Optional[float] = None
+    constr_loss: Optional[float] = None
+
+    pred_grad_norm: Optional[float] = None
+    constr_grad_norm: Optional[float] = None
+    constr_loss_weight: Optional[float] = None
+    weighted_constr_grad_norm: Optional[float] = None
+    grad_ratio: Optional[float] = None
+
+    @property
+    def phase(self) -> Literal["train"]:
+        return "train"
+
+
+@dataclass(slots=True)
+class EpochInfoTest(EpochInfo):
+    constr_sec_self: Optional[float] = None
+    constr_loss_self: Optional[float] = None
+
+    constr_sec_common: Optional[float] = None
+    constr_loss_common: Optional[float] = None
+
+    @property
+    def phase(self) -> Literal["test"]:
+        return "test"

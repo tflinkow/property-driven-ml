@@ -9,7 +9,7 @@ import os
 import torch
 from torchvision.utils import save_image
 from typing import Union, Tuple
-from ..training.epoch_info import EpochInfoTrain, EpochInfoTest
+from ..training.epoch_info import EpochInfo
 
 
 def denormalize_image(
@@ -33,7 +33,7 @@ def denormalize_image(
 
 
 def save_epoch_images(
-    info: Union[EpochInfoTrain, EpochInfoTest],
+    info: EpochInfo,
     epoch: int,
     save_dir: str,
     mean: Union[torch.Tensor, Tuple[float, ...]],
@@ -54,11 +54,13 @@ def save_epoch_images(
         """Save a single image with denormalization."""
         save_image(denormalize_image(img, mean, std), os.path.join(save_dir, name))
 
-    if isinstance(info, EpochInfoTrain):
-        prefix = "train"
-    else:
-        prefix = "test"
+    prefix = info.phase
 
-    save_img(info.input_img, f"{epoch}-{prefix}_input.png")
-    save_img(info.adv_img, f"{epoch}-{prefix}_adv.png")
-    save_img(info.random_img, f"{epoch}-{prefix}_random.png")
+    if info.input_img is not None:
+        save_img(info.input_img, f"{epoch}-{prefix}_input.png")
+
+    if info.adv_img is not None:
+        save_img(info.adv_img, f"{epoch}-{prefix}_adv.png")
+
+    if info.random_img is not None:
+        save_img(info.random_img, f"{epoch}-{prefix}_random.png")

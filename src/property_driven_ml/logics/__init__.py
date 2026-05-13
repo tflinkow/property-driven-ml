@@ -19,6 +19,9 @@ from .fuzzy_logics import (
 )
 from .stl import STL
 from .dl2 import DL2
+from .qll import QLL
+from .leaky_logic import LeakyLogic
+from .real_product_logic import RealProductLogic
 
 __all__ = [
     "Logic",
@@ -33,4 +36,7 @@ __all__ = [
     "YagerFuzzyLogic",
     "STL",
     "DL2",
+    "QLL",
+    "LeakyLogic",
+    "RealProductLogic",
 ]

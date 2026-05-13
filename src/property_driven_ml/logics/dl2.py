@@ -31,18 +31,24 @@ class DL2(Logic):
             NotImplementedError: Always. General negation is not supported.
         """
         raise NotImplementedError(
-            "DL2 does not have general negation - rewrite the constraint to push negation inwards, e.g. NOT(x <= y) should be (y < x)"
+            "DL2 does not have general negation - rewrite the constraint to push negation inwards, e.g. NOT(LEQ(x, y)) should be GT(x, y)"
         )
 
     def NEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         xi = torch.tensor(1.0, device=x.device, dtype=x.dtype)
         return xi * (x == y).float()
 
+    def EQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return self.AND(self.LEQ(x, y), self.GEQ(x, y))
+
     def LEQ(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return torch.clamp(x - y, min=0.0)
 
-    def AND2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return x + y
+    def LT(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return self.AND(self.LEQ(x, y), self.NEQ(x, y))
 
-    def OR2(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return x * y
+    def AND(self, *xs: torch.Tensor) -> torch.Tensor:
+        return torch.sum(torch.stack(xs, dim=0), dim=0)
+
+    def OR(self, *xs: torch.Tensor) -> torch.Tensor:
+        return torch.prod(torch.stack(xs, dim=0), dim=0)
